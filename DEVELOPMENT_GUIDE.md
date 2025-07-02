@@ -979,7 +979,7 @@ public class CommonValidatorTest {
     
     @Test
     void shouldValidateCPF() {
-        assertDoesNotThrow(() -> validator.validateCPF("12345678901", "cpf"));
+        assertDoesNotThrow(() -> validator.validateCPF("36900271014", "cpf"));
         
         assertThrows(ValidationException.class, 
                 () -> validator.validateCPF("123", "cpf"));
