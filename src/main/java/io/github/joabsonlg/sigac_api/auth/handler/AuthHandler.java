@@ -1,8 +1,9 @@
 package io.github.joabsonlg.sigac_api.auth.handler;
 
+import io.github.joabsonlg.sigac_api.auth.dto.CookieLoginResponseDTO;
 import io.github.joabsonlg.sigac_api.auth.dto.LoginRequestDTO;
-import io.github.joabsonlg.sigac_api.auth.dto.LoginResponseDTO;
 import io.github.joabsonlg.sigac_api.auth.dto.LoginResponseWithCookie;
+import io.github.joabsonlg.sigac_api.auth.dto.LogoutCookies;
 import io.github.joabsonlg.sigac_api.auth.dto.UserInfoDTO;
 import io.github.joabsonlg.sigac_api.auth.exception.AuthenticationException;
 import io.github.joabsonlg.sigac_api.auth.repository.AuthRepository;
@@ -73,12 +74,13 @@ public class AuthHandler {
                             userWithRole.role()
                     );
                     
-                    // Create response
-                    LoginResponseDTO response = new LoginResponseDTO(
+                    // Create response (without token in body)
+                    CookieLoginResponseDTO response = CookieLoginResponseDTO.success(userInfo);
+                    
+                    // Create access token cookie
+                    ResponseCookie accessCookie = cookieService.createAccessTokenCookie(
                             accessToken,
-                            "Bearer",
-                            expiresIn,
-                            userInfo
+                            Duration.ofSeconds(expiresIn)
                     );
                     
                     // Create refresh token cookie
@@ -87,7 +89,7 @@ public class AuthHandler {
                             Duration.ofSeconds(jwtService.getExpirationTime("refresh"))
                     );
                     
-                    return Mono.just(new LoginResponseWithCookie(response, refreshCookie));
+                    return Mono.just(new LoginResponseWithCookie(response, accessCookie, refreshCookie));
                 });
     }
     
@@ -131,12 +133,13 @@ public class AuthHandler {
                             userWithRole.role()
                     );
                     
-                    // Create response
-                    LoginResponseDTO response = new LoginResponseDTO(
+                    // Create response (without token in body)
+                    CookieLoginResponseDTO response = CookieLoginResponseDTO.success(userInfo);
+                    
+                    // Create new access token cookie
+                    ResponseCookie accessCookie = cookieService.createAccessTokenCookie(
                             newAccessToken,
-                            "Bearer",
-                            expiresIn,
-                            userInfo
+                            Duration.ofSeconds(expiresIn)
                     );
                     
                     // Create new refresh token cookie
@@ -145,7 +148,7 @@ public class AuthHandler {
                             Duration.ofSeconds(jwtService.getExpirationTime("refresh"))
                     );
                     
-                    return new LoginResponseWithCookie(response, refreshCookie);
+                    return new LoginResponseWithCookie(response, accessCookie, refreshCookie);
                 });
     }
     
@@ -179,12 +182,15 @@ public class AuthHandler {
     }
     
     /**
-     * Logs out user by clearing refresh token cookie.
+     * Logs out user by clearing authentication cookies.
      *
-     * @return cookie to clear refresh token
+     * @return cookies to clear both access and refresh tokens
      */
-    public ResponseCookie logout() {
-        return cookieService.clearRefreshTokenCookie();
+    public LogoutCookies logout() {
+        return new LogoutCookies(
+                cookieService.clearAccessTokenCookie(),
+                cookieService.clearRefreshTokenCookie()
+        );
     }
     
     /**

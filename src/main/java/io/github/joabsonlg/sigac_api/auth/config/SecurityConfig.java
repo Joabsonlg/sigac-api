@@ -7,6 +7,8 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
 
@@ -34,10 +36,13 @@ public class SecurityConfig {
                 // Disable CSRF for REST APIs
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 
+                // Disable CORS in SecurityConfig - use WebConfig configuration
+                .cors(ServerHttpSecurity.CorsSpec::disable)
+                
                 // Disable form login
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
                 
-                // Disable HTTP Basic authentication
+                // CRITICAL: Explicitly disable HTTP Basic authentication to prevent popup
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 
                 // Configure stateless authentication
@@ -45,6 +50,9 @@ public class SecurityConfig {
                 
                 // Configure authorization rules
                 .authorizeExchange(exchanges -> exchanges
+                        // Allow OPTIONS requests for CORS preflight
+                        .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        
                         // Public endpoints - Authentication
                         .pathMatchers(HttpMethod.POST, "/auth/login", "/auth/refresh", "/auth/logout").permitAll()
                         .pathMatchers(HttpMethod.GET, "/auth/health").permitAll()
@@ -61,14 +69,24 @@ public class SecurityConfig {
                         
                         // Authenticated endpoints - require valid JWT
                         .pathMatchers("/auth/me").authenticated()
+                        .pathMatchers("/api/**").authenticated()
                         
                         // All other requests require authentication (for future endpoints)
-                        .anyExchange().permitAll() // Temporariamente permitir tudo para testar Swagger
+                        .anyExchange().authenticated()
                 )
                 
                 // Add JWT authentication filter
                 .addFilterBefore(jwtAuthenticationFilter, SecurityWebFiltersOrder.AUTHENTICATION)
                 
                 .build();
+    }
+    
+    /**
+     * Password encoder bean for encrypting passwords.
+     * Uses BCrypt hashing algorithm for secure password storage.
+     */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }

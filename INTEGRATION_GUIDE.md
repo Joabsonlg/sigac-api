@@ -1,5 +1,23 @@
 # 🔐 SIGAC API - Documentação de Integração de Autenticação
 
+## 🎉 **NOVA VERSÃO 2.0.0 - 100% Cookie Based Authentication**
+
+### ✨ **O que mudou:**
+- 🍪 **Autenticação 100% via cookies**: Não precisa mais enviar tokens manualmente!
+- 🚫 **Sem header Authorization**: Cookies HTTP-only automáticos
+- 🔄 **Refresh automático**: Renovação de tokens transparente
+- 🛡️ **Mais seguro**: Tokens inacessíveis via JavaScript
+- 🌐 **CORS simplificado**: Apenas `credentials: 'include'`
+
+### 🚀 **Principais benefícios:**
+- **Zero gerenciamento manual de tokens**
+- **Renovação automática e transparente**
+- **Maior segurança contra XSS**
+- **Integração mais simples**
+- **Compatível com qualquer framework frontend**
+
+---
+
 ## 📋 Sumário
 
 - [Visão Geral](#visão-geral)
@@ -15,21 +33,22 @@
 
 ## 🔍 Visão Geral
 
-O sistema SIGAC utiliza autenticação baseada em **JWT (JSON Web Tokens)** com estratégia híbrida de segurança:
+O sistema SIGAC utiliza autenticação baseada em **JWT (JSON Web Tokens)** com estratégia **100% via cookies**:
 
-- **Access Token**: Enviado no cabeçalho `Authorization` (Bearer Token)
-- **Refresh Token**: Armazenado em cookie HTTP-only seguro
+- **Access Token**: Armazenado em cookie HTTP-only seguro (`sigac_access_token`)
+- **Refresh Token**: Armazenado em cookie HTTP-only seguro (`sigac_refresh_token`)
 - **Controle de Acesso**: Baseado em roles (ADMIN, EMPLOYEE, CLIENT)
+- **🎯 Sem necessidade de enviar tokens manualmente**: Tudo é gerenciado automaticamente via cookies!
 
 ### 🏗️ Arquitetura de Segurança
 
 ```mermaid
 graph LR
     A[Cliente] --> B[Login]
-    B --> C[Access Token + Cookie]
-    C --> D[Requisições Autenticadas]
+    B --> C[Access Token Cookie + Refresh Token Cookie]
+    C --> D[Requisições Automáticas com Cookies]
     D --> E[Token Expirado?]
-    E -->|Sim| F[Refresh via Cookie]
+    E -->|Sim| F[Refresh Automático via Cookie]
     E -->|Não| G[Sucesso]
     F --> C
 ```
@@ -43,16 +62,16 @@ graph LR
 POST /auth/login
 ```
 
-### 2. **Acesso a Recursos**
+### 2. **Acesso a Recursos (Automático via Cookie!)**
 ```
 GET /api/resource
-Header: Authorization: Bearer {access_token}
+Cookie: sigac_access_token={access_token} (automático)
 ```
 
-### 3. **Renovação de Token**
+### 3. **Renovação de Token (Automática via Cookie!)**
 ```
 POST /auth/refresh
-Cookie: sigac_refresh_token={refresh_token}
+Cookie: sigac_refresh_token={refresh_token} (automático)
 ```
 
 ### 4. **Logout**
@@ -87,9 +106,7 @@ Content-Type: application/json
   "timestamp": "2025-07-02T10:30:00.000",
   "message": "Resource created successfully",
   "data": {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "tokenType": "Bearer",
-    "expiresIn": 3600,
+    "message": "Login successful",
     "user": {
       "cpf": "36900271014",
       "name": "João Silva",
@@ -100,9 +117,10 @@ Content-Type: application/json
 }
 ```
 
-**Cookies Definidos:**
+**Cookies Definidos (Automáticos):**
 ```
-Set-Cookie: sigac_refresh_token={refresh_token}; HttpOnly; Secure; SameSite=Strict; Max-Age=604800; Path=/
+Set-Cookie: sigac_access_token={access_token}; HttpOnly; Secure; SameSite=Lax; Max-Age=3600; Path=/
+Set-Cookie: sigac_refresh_token={refresh_token}; HttpOnly; Secure; SameSite=Lax; Max-Age=604800; Path=/
 ```
 
 ---
@@ -111,7 +129,7 @@ Set-Cookie: sigac_refresh_token={refresh_token}; HttpOnly; Secure; SameSite=Stri
 
 **Endpoint:** `POST /auth/refresh`
 
-**Headers:**
+**Headers (Automático):**
 ```
 Cookie: sigac_refresh_token={refresh_token}
 ```
@@ -122,9 +140,7 @@ Cookie: sigac_refresh_token={refresh_token}
   "timestamp": "2025-07-02T10:35:00.000",
   "message": "Success",
   "data": {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "tokenType": "Bearer",
-    "expiresIn": 3600,
+    "message": "Login successful",
     "user": {
       "cpf": "36900271014",
       "name": "João Silva",
@@ -135,15 +151,21 @@ Cookie: sigac_refresh_token={refresh_token}
 }
 ```
 
+**Cookies Atualizados (Automáticos):**
+```
+Set-Cookie: sigac_access_token={new_access_token}; HttpOnly; Secure; SameSite=Lax; Max-Age=3600; Path=/
+Set-Cookie: sigac_refresh_token={new_refresh_token}; HttpOnly; Secure; SameSite=Lax; Max-Age=604800; Path=/
+```
+
 ---
 
 ### 👤 **3. Informações do Usuário**
 
 **Endpoint:** `GET /auth/me`
 
-**Headers:**
+**Headers (Automático):**
 ```
-Authorization: Bearer {access_token}
+Cookie: sigac_access_token={access_token}
 ```
 
 **Response (200 OK):**
@@ -166,7 +188,7 @@ Authorization: Bearer {access_token}
 
 **Endpoint:** `POST /auth/logout`
 
-**Headers:**
+**Headers (Automático):**
 ```
 Cookie: sigac_refresh_token={refresh_token}
 ```
@@ -180,9 +202,10 @@ Cookie: sigac_refresh_token={refresh_token}
 }
 ```
 
-**Cookies Limpos:**
+**Cookies Limpos (Automáticos):**
 ```
-Set-Cookie: sigac_refresh_token=; HttpOnly; Secure; SameSite=Strict; Max-Age=0; Path=/
+Set-Cookie: sigac_access_token=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/
+Set-Cookie: sigac_refresh_token=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/
 ```
 
 ---
@@ -212,12 +235,10 @@ interface LoginRequest {
 }
 ```
 
-### 🎫 **LoginResponse**
+### 🎫 **LoginResponse (Simplificada - 100% Cookie)**
 ```typescript
-interface LoginResponse {
-  token: string;      // JWT Access Token
-  tokenType: string;  // Sempre "Bearer"
-  expiresIn: number;  // Tempo de expiração em segundos
+interface CookieLoginResponse {
+  message: string;    // Mensagem de sucesso
   user: UserInfo;     // Informações do usuário
 }
 ```
@@ -256,21 +277,20 @@ interface ErrorResponse {
 
 ## 🛠️ Exemplos de Integração
 
-### 🌐 **JavaScript/TypeScript (Fetch API)**
+### 🌐 **JavaScript/TypeScript (Fetch API) - 100% Cookie Based**
 
 ```typescript
 class SigacAuthClient {
   private baseUrl = 'http://localhost:8080';
-  private accessToken: string | null = null;
 
-  // Login
+  // Login - Apenas envie credenciais, tokens são automáticos via cookies!
   async login(cpf: string, password: string): Promise<UserInfo> {
     const response = await fetch(`${this.baseUrl}/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      credentials: 'include', // Importante para cookies
+      credentials: 'include', // 🔑 ESSENCIAL para cookies automáticos
       body: JSON.stringify({ cpf, password }),
     });
 
@@ -279,50 +299,62 @@ class SigacAuthClient {
     }
 
     const result = await response.json();
-    this.accessToken = result.data.token;
+    // 🎉 Não precisa mais armazenar token! Está tudo nos cookies
     return result.data.user;
   }
 
-  // Requisição autenticada
+  // Requisição autenticada - SEM necessidade de token manual!
   async authenticatedRequest(url: string, options: RequestInit = {}) {
     return fetch(`${this.baseUrl}${url}`, {
       ...options,
-      headers: {
-        ...options.headers,
-        'Authorization': `Bearer ${this.accessToken}`,
-      },
-      credentials: 'include',
+      // 🚫 NÃO precisa mais do header Authorization!
+      credentials: 'include', // 🔑 ESSENCIAL para enviar cookies automaticamente
     });
   }
 
-  // Refresh token
+  // Refresh token - Completamente automático!
   async refreshToken(): Promise<void> {
     const response = await fetch(`${this.baseUrl}/auth/refresh`, {
       method: 'POST',
-      credentials: 'include',
+      credentials: 'include', // 🔑 Cookies enviados e recebidos automaticamente
     });
 
-    if (response.ok) {
-      const result = await response.json();
-      this.accessToken = result.data.token;
-    } else {
-      // Redirect to login
-      this.accessToken = null;
+    if (!response.ok) {
+      // Redirect to login se refresh falhar
+      window.location.href = '/login';
     }
+    // 🎉 Novos tokens já estão nos cookies automaticamente!
   }
 
-  // Logout
+  // Logout - Limpa todos os cookies automaticamente
   async logout(): Promise<void> {
     await fetch(`${this.baseUrl}/auth/logout`, {
       method: 'POST',
-      credentials: 'include',
+      credentials: 'include', // 🔑 Para limpar os cookies
     });
-    this.accessToken = null;
+    // 🎉 Cookies limpos automaticamente pelo servidor!
+  }
+
+  // Verificar se está autenticado - SEM token manual!
+  async getCurrentUser(): Promise<UserInfo | null> {
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/me`, {
+        credentials: 'include', // 🔑 Cookie enviado automaticamente
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        return result.data;
+      }
+      return null;
+    } catch (error) {
+      return null;
+    }
   }
 }
 ```
 
-### ⚛️ **React Hook**
+### ⚛️ **React Hook - 100% Cookie Based**
 
 ```typescript
 import { useState, useEffect, createContext, useContext } from 'react';
@@ -342,18 +374,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const authClient = new SigacAuthClient();
 
-  // Verificar se já está autenticado ao carregar
+  // Verificar se já está autenticado ao carregar - automático via cookie!
   useEffect(() => {
     checkAuth();
   }, []);
 
   const checkAuth = async () => {
     try {
-      const response = await authClient.authenticatedRequest('/auth/me');
-      if (response.ok) {
-        const result = await response.json();
-        setUser(result.data);
-      }
+      // 🎉 getCurrentUser usa cookies automaticamente!
+      const userInfo = await authClient.getCurrentUser();
+      setUser(userInfo);
     } catch (error) {
       console.error('Auth check failed:', error);
     } finally {
@@ -362,11 +392,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = async (cpf: string, password: string) => {
+    // 🎉 Login configura cookies automaticamente!
     const userInfo = await authClient.login(cpf, password);
     setUser(userInfo);
   };
 
   const logout = async () => {
+    // 🎉 Logout limpa cookies automaticamente!
     await authClient.logout();
     setUser(null);
   };
@@ -393,24 +425,18 @@ export const useAuth = () => {
 };
 ```
 
-### 📱 **Interceptor para Axios**
+### 📱 **Interceptor para Axios - 100% Cookie Based**
 
 ```typescript
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 const apiClient = axios.create({
   baseURL: 'http://localhost:8080',
-  withCredentials: true, // Para cookies
+  withCredentials: true, // 🔑 ESSENCIAL para cookies automáticos
 });
 
-// Interceptor de requisição
-apiClient.interceptors.request.use((config: AxiosRequestConfig) => {
-  const token = localStorage.getItem('access_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// 🚫 NÃO precisa mais de interceptor de requisição para adicionar token!
+// Os cookies são enviados automaticamente
 
 // Interceptor de resposta para refresh automático
 apiClient.interceptors.response.use(
@@ -420,19 +446,16 @@ apiClient.interceptors.response.use(
       error.config._retry = true;
       
       try {
-        const refreshResponse = await axios.post('/auth/refresh', {}, {
+        // 🎉 Refresh automático via cookies!
+        await axios.post('/auth/refresh', {}, {
           withCredentials: true,
         });
         
-        const newToken = refreshResponse.data.data.token;
-        localStorage.setItem('access_token', newToken);
-        
-        // Retry original request
-        error.config.headers.Authorization = `Bearer ${newToken}`;
+        // 🎉 Novos tokens já estão nos cookies automaticamente!
+        // Retry original request (cookies serão enviados automaticamente)
         return apiClient.request(error.config);
       } catch (refreshError) {
-        // Redirect to login
-        localStorage.removeItem('access_token');
+        // Redirect to login se refresh falhar
         window.location.href = '/login';
       }
     }
@@ -440,6 +463,22 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Exemplo de uso simplificado
+export const authApi = {
+  login: (cpf: string, password: string) =>
+    apiClient.post('/auth/login', { cpf, password }),
+  
+  getCurrentUser: () =>
+    apiClient.get('/auth/me'), // 🎉 Cookie enviado automaticamente!
+  
+  logout: () =>
+    apiClient.post('/auth/logout'), // 🎉 Cookies limpos automaticamente!
+  
+  // Qualquer endpoint protegido funciona automaticamente!
+  getUsers: () =>
+    apiClient.get('/users'), // 🎉 Autenticação automática via cookie!
+};
 ```
 
 ---
@@ -466,6 +505,7 @@ apiClient.interceptors.response.use(
 | `INVALID_CREDENTIALS` | CPF ou senha incorretos | Verificar credenciais |
 | `INVALID_REFRESH_TOKEN` | Refresh token inválido | Fazer login novamente |
 | `MISSING_REFRESH_TOKEN` | Cookie não encontrado | Fazer login novamente |
+| `MISSING_TOKEN` | Cookie de access token não encontrado | Fazer refresh ou login |
 | `INVALID_TOKEN_TYPE` | Tipo de token incorreto | Verificar implementação |
 | `USER_NOT_FOUND` | Usuário não existe | Verificar cadastro |
 | `VALIDATION_ERROR` | Erro de validação | Corrigir dados |
@@ -513,9 +553,11 @@ async function handleApiCall(apiCall: () => Promise<Response>) {
 
 2. **Cookies Seguros:**
    - `HttpOnly`: Não acessível via JavaScript
-   - `Secure`: Apenas HTTPS (produção)
-   - `SameSite=Strict`: Proteção CSRF
+   - `Secure`: Apenas HTTPS (produção, `false` em desenvolvimento)
+   - `SameSite=Lax`: Compatível com CORS, proteção CSRF
    - `Path=/`: Escopo limitado
+   - **Access Token Cookie**: `sigac_access_token` (1 hora)
+   - **Refresh Token Cookie**: `sigac_refresh_token` (7 dias)
 
 3. **Validação:**
    - CPF válido obrigatório
@@ -537,16 +579,19 @@ sigac.security.cors.allow-credentials=true
 
 ### ⚡ **Recomendações do Cliente**
 
-1. **Armazenamento:**
-   - Access token: Memória ou sessionStorage
-   - Refresh token: Cookie automático
-   - **Nunca** localStorage para tokens
+1. **🍪 Armazenamento (100% Automático):**
+   - **Access Token**: Cookie HTTP-only (automático)
+   - **Refresh Token**: Cookie HTTP-only (automático)
+   - **🚫 NÃO use localStorage ou sessionStorage para tokens**
+   - **🎉 Sem gerenciamento manual de tokens!**
 
 2. **HTTPS:**
    - Obrigatório em produção
    - Certificado SSL válido
+   - Em desenvolvimento: HTTP funciona (configuração automática)
 
-3. **Timeout:**
+3. **Timeout e Configuração:**
+   - Sempre usar `credentials: 'include'` (Fetch) ou `withCredentials: true` (Axios)
    - Implementar timeout nas requisições
    - Retry automático com exponential backoff
 
@@ -566,7 +611,7 @@ REACT_APP_API_URL=https://api.sigac.com
 REACT_APP_API_TIMEOUT=5000
 ```
 
-### 🔧 **Headers Obrigatórios**
+### 🔧 **Headers Obrigatórios (Simplificados!)**
 
 ```typescript
 const defaultHeaders = {
@@ -574,24 +619,24 @@ const defaultHeaders = {
   'Accept': 'application/json',
 };
 
-// Para requisições autenticadas
-const authHeaders = {
-  ...defaultHeaders,
-  'Authorization': `Bearer ${accessToken}`,
-};
+// 🎉 Para requisições autenticadas: APENAS cookies!
+// NÃO precisa mais de header Authorization
 ```
 
-### 🍪 **Configuração de Cookies**
+### 🍪 **Configuração de Cookies (ESSENCIAL!)**
 
 ```typescript
-// Axios
+// Axios - SEMPRE necessário para cookies
 axios.defaults.withCredentials = true;
 
-// Fetch
+// Fetch - SEMPRE necessário para cookies
 fetch(url, {
-  credentials: 'include',
+  credentials: 'include', // 🔑 OBRIGATÓRIO para cookies automáticos
   // ... other options
 });
+
+// XMLHttpRequest
+xhr.withCredentials = true;
 ```
 
 ---
@@ -601,34 +646,56 @@ fetch(url, {
 ### ❓ **Problemas Comuns**
 
 1. **Cookie não está sendo enviado:**
-   - Verificar `withCredentials: true`
-   - Verificar configuração CORS
-   - Verificar se domínios coincidem
+   - ✅ Verificar `withCredentials: true` (Axios) ou `credentials: 'include'` (Fetch)
+   - ✅ Verificar configuração CORS no servidor
+   - ✅ Verificar se domínios coincidem (localhost:3000 ↔ localhost:8080)
+   - ✅ Verificar se `SameSite=Lax` está configurado
 
-2. **Token expira muito rápido:**
-   - Implementar refresh automático
-   - Verificar configuração de tempo
+2. **401 Unauthorized:**
+   - ✅ Verificar se cookies estão sendo enviados (`credentials: 'include'`)
+   - ✅ Verificar se o cookie `sigac_access_token` existe
+   - ✅ Tentar refresh automático
+   - ✅ Verificar se o servidor está aceitando cookies
 
 3. **CORS Error:**
-   - Configurar origins permitidas
-   - Verificar métodos e headers
+   - ✅ Configurar `sigac.security.cors.allowed-origins` no servidor
+   - ✅ Configurar `sigac.security.cors.allow-credentials=true`
+   - ✅ Verificar métodos e headers permitidos
 
-4. **401 Unauthorized:**
-   - Verificar se token está sendo enviado
-   - Verificar formato do header Authorization
-   - Tentar refresh token
+4. **Cookie expira muito rápido:**
+   - ✅ Implementar refresh automático com interceptor
+   - ✅ Verificar configuração de tempo no servidor
 
 ### 🔍 **Debug**
 
 ```typescript
-// Verificar se cookie está presente
-console.log('Cookies:', document.cookie);
+// Verificar se cookies estão presentes
+console.log('All cookies:', document.cookie);
+console.log('Access token cookie:', document.cookie.includes('sigac_access_token'));
+console.log('Refresh token cookie:', document.cookie.includes('sigac_refresh_token'));
 
-// Verificar headers da requisição
-console.log('Request headers:', request.headers);
+// Verificar se credentials estão sendo enviados
+fetch('/auth/me', { 
+  credentials: 'include' 
+}).then(response => {
+  console.log('Response status:', response.status);
+  console.log('Response headers:', response.headers);
+});
 
 // Verificar resposta da API
 console.log('Response:', await response.json());
+
+// Teste manual de autenticação
+const testAuth = async () => {
+  try {
+    const response = await fetch('http://localhost:8080/auth/me', {
+      credentials: 'include'
+    });
+    console.log('Auth test:', response.status === 200 ? 'SUCCESS' : 'FAILED');
+  } catch (error) {
+    console.error('Auth test error:', error);
+  }
+};
 ```
 
 ---
@@ -644,4 +711,4 @@ Para dúvidas ou problemas:
 
 ---
 
-*Última atualização: 02/07/2025 - v1.0.0*
+*Última atualização: 05/07/2025 - v2.0.0 - 🍪 **100% Cookie Based Authentication***

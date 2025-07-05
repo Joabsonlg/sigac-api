@@ -1,8 +1,10 @@
 package io.github.joabsonlg.sigac_api.auth.controller;
 
+import io.github.joabsonlg.sigac_api.auth.dto.CookieLoginResponseDTO;
 import io.github.joabsonlg.sigac_api.auth.dto.LoginRequestDTO;
 import io.github.joabsonlg.sigac_api.auth.dto.LoginResponseDTO;
 import io.github.joabsonlg.sigac_api.auth.dto.UserInfoDTO;
+import io.github.joabsonlg.sigac_api.auth.exception.AuthenticationException;
 import io.github.joabsonlg.sigac_api.auth.handler.AuthHandler;
 import io.github.joabsonlg.sigac_api.auth.service.CookieService;
 import io.github.joabsonlg.sigac_api.common.base.BaseController;
@@ -28,15 +30,15 @@ import reactor.core.publisher.Mono;
 @RequestMapping("/auth")
 @Tag(name = "Authentication", description = "Endpoints para autenticação e autorização")
 public class AuthController extends BaseController<LoginResponseDTO, String> {
-    
+
     private final AuthHandler authHandler;
     private final CookieService cookieService;
-    
+
     public AuthController(AuthHandler authHandler, CookieService cookieService) {
         this.authHandler = authHandler;
         this.cookieService = cookieService;
     }
-    
+
     /**
      * Authenticates user and returns JWT tokens.
      * Refresh token is sent via secure HTTP-only cookie.
@@ -50,9 +52,11 @@ public class AuthController extends BaseController<LoginResponseDTO, String> {
             summary = "Autenticar usuário",
             description = """
                     Autentica o usuário com CPF e senha, retornando:
-                    - Access Token JWT (no response body)
+                    - Informações do usuário autenticado (no response body)
+                    - Access Token JWT (em cookie HTTP-only seguro)
                     - Refresh Token (em cookie HTTP-only seguro)
-                    - Informações do usuário autenticado
+                    
+                    **Autenticação 100% via cookies:** Não é necessário enviar tokens manualmente.
                     """,
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Credenciais de login",
@@ -86,9 +90,7 @@ public class AuthController extends BaseController<LoginResponseDTO, String> {
                                                 "success": true,
                                                 "message": "Request successful",
                                                 "data": {
-                                                    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                                                    "tokenType": "Bearer",
-                                                    "expiresIn": 3600,
+                                                    "message": "Login successful",
                                                     "user": {
                                                         "cpf": "36900271014",
                                                         "name": "João Silva",
@@ -107,20 +109,21 @@ public class AuthController extends BaseController<LoginResponseDTO, String> {
                     description = "Credenciais inválidas"
             )
     })
-    public Mono<ResponseEntity<ApiResponse<LoginResponseDTO>>> login(
+    public Mono<ResponseEntity<ApiResponse<CookieLoginResponseDTO>>> login(
             @Parameter(description = "Dados de login do usuário")
             @RequestBody LoginRequestDTO loginRequest,
             ServerWebExchange exchange) {
         return authHandler.login(loginRequest)
                 .map(loginResponseWithCookie -> {
-                    // Add refresh token cookie to response
+                    // Add both access and refresh token cookies to response
+                    exchange.getResponse().addCookie(loginResponseWithCookie.accessTokenCookie());
                     exchange.getResponse().addCookie(loginResponseWithCookie.refreshTokenCookie());
-                    
+
                     return created(Mono.just(loginResponseWithCookie.response()));
                 })
                 .flatMap(response -> response);
     }
-    
+
     /**
      * Refreshes access token using refresh token from cookie.
      * Returns new access token and sets new refresh token cookie.
@@ -154,22 +157,23 @@ public class AuthController extends BaseController<LoginResponseDTO, String> {
                     description = "Refresh token inválido ou expirado"
             )
     })
-    public Mono<ResponseEntity<ApiResponse<LoginResponseDTO>>> refresh(ServerWebExchange exchange) {
+    public Mono<ResponseEntity<ApiResponse<CookieLoginResponseDTO>>> refresh(ServerWebExchange exchange) {
         // Extract refresh token from cookie
         String refreshToken = exchange.getRequest().getCookies()
                 .getFirst(cookieService.getRefreshTokenCookieName())
                 .getValue();
-        
+
         return authHandler.refreshToken(refreshToken)
                 .map(loginResponseWithCookie -> {
-                    // Add new refresh token cookie to response
+                    // Add both new access and refresh token cookies to response
+                    exchange.getResponse().addCookie(loginResponseWithCookie.accessTokenCookie());
                     exchange.getResponse().addCookie(loginResponseWithCookie.refreshTokenCookie());
-                    
+
                     return ok(Mono.just(loginResponseWithCookie.response()));
                 })
                 .flatMap(response -> response);
     }
-    
+
     /**
      * Logs out user by clearing refresh token cookie.
      *
@@ -197,16 +201,19 @@ public class AuthController extends BaseController<LoginResponseDTO, String> {
             )
     })
     public Mono<ResponseEntity<ApiResponse<Void>>> logout(ServerWebExchange exchange) {
-        // Clear refresh token cookie
-        exchange.getResponse().addCookie(authHandler.logout());
-        
+        // Clear both access and refresh token cookies
+        var logoutCookies = authHandler.logout();
+        exchange.getResponse().addCookie(logoutCookies.accessTokenCookie());
+        exchange.getResponse().addCookie(logoutCookies.refreshTokenCookie());
+
         return okMessage("Logged out successfully");
     }
-    
+
     /**
      * Validates token and returns user information.
+     * Works with both Authorization header and access token cookie.
      *
-     * @param authorization Authorization header with Bearer token
+     * @param exchange server web exchange for reading cookies and headers
      * @return user information
      */
     @GetMapping("/me")
@@ -216,12 +223,15 @@ public class AuthController extends BaseController<LoginResponseDTO, String> {
                     Retorna as informações do usuário autenticado baseado no access token.
                     
                     **Requisitos:**
-                    - Header Authorization com Bearer token válido
+                    - Access token via cookie ou header Authorization com Bearer token válido
                     
                     **Retorna:**
                     - CPF, nome, email e papel do usuário
                     """,
-            security = @SecurityRequirement(name = "bearerAuth")
+            security = {
+                    @SecurityRequirement(name = "bearerAuth"),
+                    @SecurityRequirement(name = "cookieAuth")
+            }
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -237,17 +247,28 @@ public class AuthController extends BaseController<LoginResponseDTO, String> {
                     description = "Token inválido ou expirado"
             )
     })
-    public Mono<ResponseEntity<ApiResponse<UserInfoDTO>>> getCurrentUser(
-            @Parameter(description = "Token de autorização no formato 'Bearer {token}'", example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
-            @RequestHeader("Authorization") String authorization) {
-        // Extract token from Authorization header
-        String token = extractTokenFromHeader(authorization);
+    public Mono<ResponseEntity<ApiResponse<UserInfoDTO>>> getCurrentUser(ServerWebExchange exchange) {
+        // Try to get token from Authorization header first
+        String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
+        String token = null;
         
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        } else {
+            // Try to get token from cookies
+            var cookie = exchange.getRequest().getCookies().getFirst(cookieService.getAccessTokenCookieName());
+            token = cookie != null ? cookie.getValue() : null;
+        }
+        
+        if (token == null) {
+            return Mono.error(new AuthenticationException("No access token provided", "MISSING_TOKEN"));
+        }
+
         return authHandler.validateAndGetUserInfo(token)
                 .map(userInfo -> ok(Mono.just(userInfo)))
                 .flatMap(response -> response);
     }
-    
+
     /**
      * Health check endpoint for authentication service.
      *
@@ -275,7 +296,51 @@ public class AuthController extends BaseController<LoginResponseDTO, String> {
     public Mono<ResponseEntity<ApiResponse<Void>>> health() {
         return okMessage("Authentication service is running");
     }
-    
+
+    /**
+     * Validates the JWT token and returns user information.
+     * This endpoint is used to verify the token's validity and retrieve user details.
+     *
+     * @param authorization Authorization header containing the Bearer token
+     * @return User information if token is valid
+     */
+    @GetMapping("/verify")
+    @Operation(
+            summary = "Validar token JWT",
+            description = """
+                    Valida o token JWT e retorna as informações do usuário associado.
+                    
+                    **Requisitos:**
+                    - Header Authorization com Bearer token válido
+                    
+                    **Retorna:**
+                    - Informações do usuário (CPF, nome, email, papel)
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Token válido, informações do usuário retornadas",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = UserInfoDTO.class)
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Token inválido ou expirado"
+            )
+    })
+    public Mono<ResponseEntity<ApiResponse<UserInfoDTO>>> verifyToken(
+            @Parameter(description = "Token de autorização no formato 'Bearer {token}'", example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+            @RequestHeader("Authorization") String authorization) {
+        String token = extractTokenFromHeader(authorization);
+        return authHandler.validateAndGetUserInfo(token)
+                .map(userInfo -> ok(Mono.just(userInfo)))
+                .flatMap(response -> response);
+    }
+
     /**
      * Extracts JWT token from Authorization header.
      *
