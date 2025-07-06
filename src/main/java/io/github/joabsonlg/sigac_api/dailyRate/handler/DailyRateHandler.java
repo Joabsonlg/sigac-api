@@ -2,12 +2,14 @@ package io.github.joabsonlg.sigac_api.dailyRate.handler;
 
 import io.github.joabsonlg.sigac_api.common.base.BaseHandler;
 import io.github.joabsonlg.sigac_api.common.exception.ResourceNotFoundException;
+import io.github.joabsonlg.sigac_api.common.exception.ValidationException;
 import io.github.joabsonlg.sigac_api.common.response.PageResponse;
 import io.github.joabsonlg.sigac_api.dailyRate.dto.DailyRateDTO;
 import io.github.joabsonlg.sigac_api.dailyRate.dto.DailyRateInputDTO;
 import io.github.joabsonlg.sigac_api.dailyRate.model.DailyRate;
 import io.github.joabsonlg.sigac_api.dailyRate.repository.DailyRateRepository;
 import io.github.joabsonlg.sigac_api.dailyRate.validator.DailyRateValidator;
+import io.github.joabsonlg.sigac_api.vehicle.repository.VehicleRepository;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -20,10 +22,12 @@ public class DailyRateHandler extends BaseHandler<DailyRate, DailyRateDTO, Integ
 
     private final DailyRateRepository dailyRateRepository;
     private final DailyRateValidator dailyRateValidator;
+    private final VehicleRepository vehicleRepository;
 
-    public DailyRateHandler(DailyRateRepository dailyRateRepository, DailyRateValidator dailyRateValidator) {
+    public DailyRateHandler(DailyRateRepository dailyRateRepository, DailyRateValidator dailyRateValidator, VehicleRepository vehicleRepository) {
         this.dailyRateRepository = dailyRateRepository;
         this.dailyRateValidator = dailyRateValidator;
+        this.vehicleRepository = vehicleRepository;
     }
 
     @Override
@@ -64,28 +68,35 @@ public class DailyRateHandler extends BaseHandler<DailyRate, DailyRateDTO, Integ
 
     public Mono<DailyRateDTO> create(DailyRateInputDTO dto) {
         return dailyRateValidator.validateDailyRate(dto)
-                .then(Mono.fromCallable(() -> new DailyRate(
-                        null,
-                        dto.amount(),
-                        dto.dateTime(),
-                        dto.vehiclePlate()
-                )))
-                .flatMap(dailyRateRepository::save)
+                .then(vehicleRepository.existsByPlate(dto.vehiclePlate()))
+                .flatMap(exists -> {
+                    if (!exists) {
+                        return Mono.error(new ValidationException("Veículo com placa " + dto.vehiclePlate() + " não cadastrado."));
+                    }
+                    DailyRate dailyRate = new DailyRate(null, dto.amount(), dto.dateTime(), dto.vehiclePlate());
+                    return dailyRateRepository.save(dailyRate);
+                })
                 .map(this::toDto);
     }
 
     public Mono<DailyRateDTO> update(Long id, DailyRateInputDTO dto) {
         return dailyRateValidator.validateDailyRate(dto)
-                .then(dailyRateRepository.findById(id))
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Diária", id)))
-                .flatMap(existing -> {
-                    DailyRate updated = new DailyRate(
-                            existing.id(),
-                            dto.amount() != null ? dto.amount() : existing.amount(),
-                            dto.dateTime() != null ? dto.dateTime() : existing.dateTime(),
-                            dto.vehiclePlate() != null ? dto.vehiclePlate() : existing.vehiclePlate()
-                    );
-                    return dailyRateRepository.update(updated);
+                .flatMap(v -> vehicleRepository.existsByPlate(dto.vehiclePlate()))
+                .flatMap(exists -> {
+                    if (!exists) {
+                        return Mono.error(new ValidationException("Veículo com placa " + dto.vehiclePlate() + " não cadastrado."));
+                    }
+                    return dailyRateRepository.findById(id)
+                            .switchIfEmpty(Mono.error(new ResourceNotFoundException("Diária", id)))
+                            .flatMap(existing -> {
+                                DailyRate updated = new DailyRate(
+                                        existing.id(),
+                                        dto.amount() != null ? dto.amount() : existing.amount(),
+                                        dto.dateTime() != null ? dto.dateTime() : existing.dateTime(),
+                                        dto.vehiclePlate() != null ? dto.vehiclePlate() : existing.vehiclePlate()
+                                );
+                                return dailyRateRepository.update(updated);
+                            });
                 })
                 .map(this::toDto);
     }

@@ -138,14 +138,15 @@ public class VehicleRepository extends BaseRepository<Vehicle, String> {
      */
     public Mono<Boolean> existsByPlate(String plate) {
         return databaseClient.sql("""
-                SELECT COUNT(*) FROM vehicle WHERE plate = :plate
-            """)
+            SELECT COUNT(*) FROM vehicle WHERE plate = :plate
+        """)
                 .bind("plate", plate)
                 .map((row, metadata) -> {
                     Long count = row.get(0, Long.class);
                     return count != null && count > 0;
                 })
-                .one();
+                .one()
+                .defaultIfEmpty(false);
     }
 
     /**

@@ -1,5 +1,6 @@
 package io.github.joabsonlg.sigac_api.dailyRate.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -16,6 +17,7 @@ public record DailyRateInputDTO(
         Double amount,
 
         @NotNull(message = "A data/hora é obrigatória")
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
         LocalDateTime dateTime,
 
         @NotNull(message = "A placa do veículo é obrigatória")

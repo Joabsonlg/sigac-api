@@ -113,30 +113,42 @@ public class MaintenanceRepository extends BaseRepository<Maintenance, Long> {
      * Atualiza manutenção existente.
      */
     public Mono<Maintenance> update(Maintenance maintenance) {
-        return databaseClient.sql("""
-                UPDATE maintenance
-                SET scheduled_date = :scheduled_date,
-                    performed_date = :performed_date,
-                    description = :description,
-                    type = :type,
-                    status = :status,
-                    cost = :cost,
-                    employee_user_cpf = :employee_user_cpf,
-                    vehicle_plate = :vehicle_plate
-                WHERE id = :id
-            """)
+        var spec = databaseClient.sql("""
+        UPDATE maintenance
+        SET scheduled_date = :scheduled_date,
+            performed_date = :performed_date,
+            description = :description,
+            type = :type,
+            status = :status,
+            cost = :cost,
+            employee_user_cpf = :employee_user_cpf,
+            vehicle_plate = :vehicle_plate
+        WHERE id = :id
+    """)
                 .bind("id", maintenance.id())
-                .bind("scheduled_date", maintenance.scheduledDate())
-                .bind("performed_date", maintenance.performedDate())
-                .bind("description", maintenance.description())
+                .bind("scheduled_date", maintenance.scheduledDate());
+
+        spec = maintenance.performedDate() != null
+                ? spec.bind("performed_date", maintenance.performedDate())
+                : spec.bindNull("performed_date", LocalDateTime.class);
+
+        spec = spec.bind("description", maintenance.description())
                 .bind("type", maintenance.type().name())
-                .bind("status", maintenance.status().name())
-                .bind("cost", maintenance.cost())
-                .bind("employee_user_cpf", maintenance.employeeUserCpf())
-                .bind("vehicle_plate", maintenance.vehiclePlate())
-                .then()
-                .thenReturn(maintenance);
+                .bind("status", maintenance.status().name());
+
+        spec = maintenance.cost() != null
+                ? spec.bind("cost", maintenance.cost())
+                : spec.bindNull("cost", String.class);
+
+        spec = maintenance.employeeUserCpf() != null
+                ? spec.bind("employee_user_cpf", maintenance.employeeUserCpf())
+                : spec.bindNull("employee_user_cpf", String.class);
+
+        spec = spec.bind("vehicle_plate", maintenance.vehiclePlate());
+
+        return spec.then().thenReturn(maintenance);
     }
+
 
     /**
      * Exclui manutenção por id.

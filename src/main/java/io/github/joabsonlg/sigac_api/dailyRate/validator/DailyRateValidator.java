@@ -34,8 +34,6 @@ public class DailyRateValidator {
             if (isNullOrEmpty(dto.vehiclePlate())) {
                 throw new ValidationException("A placa do veículo é obrigatória");
             }
-
-            validatePlate(dto.vehiclePlate());
         });
     }
 

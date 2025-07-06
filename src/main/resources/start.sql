@@ -123,12 +123,12 @@ INSERT INTO client (user_cpf) VALUES
 INSERT INTO vehicle (plate, year, model, brand, status, image_url) VALUES
 ('ABC1234', '2023', 'Civic', 'Honda', 'DISPONIVEL', 'https://example.com/civic.jpg'),
 ('DEF5678', '2022', 'Corolla', 'Toyota', 'DISPONIVEL', 'https://example.com/corolla.jpg'),
-('GHI9012', '2023', 'HB20', 'Hyundai', 'ALUGADO', 'https://example.com/hb20.jpg'),
+('GHI9012', '2023', 'HB20', 'Hyundai', 'DISPONIVEL', 'https://example.com/hb20.jpg'),
 ('JKL3456', '2021', 'Onix', 'Chevrolet', 'DISPONIVEL', 'https://example.com/onix.jpg'),
 ('MNO7890', '2023', 'Polo', 'Volkswagen', 'MANUTENCAO', 'https://example.com/polo.jpg'),
 ('PQR1234', '2022', 'Compass', 'Jeep', 'DISPONIVEL', 'https://example.com/compass.jpg'),
 ('STU5678', '2023', 'T-Cross', 'Volkswagen', 'DISPONIVEL', 'https://example.com/tcross.jpg'),
-('VWX9012', '2021', 'Ecosport', 'Ford', 'ALUGADO', 'https://example.com/ecosport.jpg');
+('VWX9012', '2021', 'Ecosport', 'Ford', 'DISPONIVEL', 'https://example.com/ecosport.jpg');
 
 -- Promoções
 INSERT INTO promotion (discount_percentage, status, start_date, end_date) VALUES
