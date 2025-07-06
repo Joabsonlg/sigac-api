@@ -176,4 +176,20 @@ public class CommonValidator {
             return false;
         }
     }
+
+    private static final Pattern URL_PATTERN = Pattern.compile(
+            "^(https?|ftp)://[^\\s/$.?#].[^\\s]*$",
+            Pattern.CASE_INSENSITIVE
+    );
+
+    /**
+     * Valida se uma URL é válida.
+     */
+    public void validateUrl(String url, String fieldName) {
+        validateRequired(url, fieldName);
+        if (!URL_PATTERN.matcher(url).matches()) {
+            throw new ValidationException(fieldName, "must be a valid URL");
+        }
+    }
+
 }

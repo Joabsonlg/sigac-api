@@ -3,7 +3,7 @@ CREATE TABLE users
     cpf      VARCHAR(45) PRIMARY KEY,
     email    VARCHAR(255),
     name     VARCHAR(255),
-    password VARCHAR(45),
+    password VARCHAR(255),
     address  VARCHAR(255),
     phone    VARCHAR(255)
 );
@@ -24,7 +24,7 @@ CREATE TABLE employee
 CREATE TABLE vehicle
 (
     plate     VARCHAR(45) PRIMARY KEY,
-    year      VARCHAR(45),
+    year      INTEGER,
     model     VARCHAR(45),
     brand     VARCHAR(45),
     status    VARCHAR(45),

@@ -1,5 +1,8 @@
 package io.github.joabsonlg.sigac_api.common.model;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
 public class Vehicle {
     private String plate;
     private String year;
@@ -7,6 +10,27 @@ public class Vehicle {
     private String brand;
     private String status;
     private String imageUrl;
+
+    public Vehicle(
+            @NotBlank(message = "A placa é obrigatória") @Size(max = 20, message = "A placa deve ter no máximo 20 caracteres") String plate,
+            @NotBlank(message = "O ano é obrigatório") @Size(max = 10, message = "O ano deve ter no máximo 10 caracteres") String year,
+            @NotBlank(message = "O modelo é obrigatório") @Size(max = 100, message = "O modelo deve ter no máximo 100 caracteres") String model,
+            @NotBlank(message = "A marca é obrigatória") @Size(max = 100, message = "A marca deve ter no máximo 100 caracteres") String brand,
+            @NotBlank(message = "O status é obrigatório") @Size(max = 50, message = "O status deve ter no máximo 50 caracteres") String status,
+            @Size(max = 255, message = "A URL da imagem deve ter no máximo 255 caracteres") String imageUrl
+    ) {
+        this.plate = plate;
+        this.year = year;
+        this.model = model;
+        this.brand = brand;
+        this.status = status;
+        this.imageUrl = imageUrl;
+    }
+
+    public Vehicle() {
+        // construtor padrão vazio
+    }
+
 
     // Getters and setters
 
