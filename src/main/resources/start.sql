@@ -86,7 +86,7 @@ CREATE TABLE maintenance
 CREATE TABLE daily_rate
 (
     id            SERIAL PRIMARY KEY,
-    amount        INT,
+    amount        DOUBLE,
     date_time     TIMESTAMP,
     vehicle_plate VARCHAR(45),
     FOREIGN KEY (vehicle_plate) REFERENCES vehicle (plate)

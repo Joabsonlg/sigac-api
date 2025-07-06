@@ -1,6 +1,7 @@
 package io.github.joabsonlg.sigac_api.vehicle.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.github.joabsonlg.sigac_api.vehicle.enumeration.VehicleStatus;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 
 /**
@@ -12,6 +13,6 @@ public record VehicleDTO(
         Integer year,
         String model,
         String brand,
-        String status,
+        VehicleStatus status,
         String imageUrl
 ) {}

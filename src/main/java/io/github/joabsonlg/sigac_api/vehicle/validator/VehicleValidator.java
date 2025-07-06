@@ -4,6 +4,7 @@ import io.github.joabsonlg.sigac_api.common.exception.ValidationException;
 import io.github.joabsonlg.sigac_api.common.validator.CommonValidator;
 import io.github.joabsonlg.sigac_api.vehicle.dto.CreateVehicleDTO;
 import io.github.joabsonlg.sigac_api.vehicle.dto.UpdateVehicleDTO;
+import io.github.joabsonlg.sigac_api.vehicle.enumeration.VehicleStatus;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -39,7 +40,7 @@ public class VehicleValidator {
                 throw new ValidationException("Marca do veículo é obrigatória");
             }
 
-            if (isNullOrEmpty(dto.status())) {
+            if (dto.status() == null) {
                 throw new ValidationException("Status do veículo é obrigatório");
             }
 

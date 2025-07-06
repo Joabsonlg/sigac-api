@@ -1,5 +1,6 @@
 package io.github.joabsonlg.sigac_api.vehicle.dto;
 
+import io.github.joabsonlg.sigac_api.vehicle.enumeration.VehicleStatus;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -28,7 +29,7 @@ public record CreateVehicleDTO(
 
         @NotBlank(message = "O status é obrigatório")
         @Size(max = 50, message = "O status deve ter no máximo 50 caracteres")
-        String status,
+        VehicleStatus status,
 
         @Size(max = 255, message = "A URL da imagem deve ter no máximo 255 caracteres")
         String imageUrl

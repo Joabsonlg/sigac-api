@@ -1,6 +1,7 @@
 package io.github.joabsonlg.sigac_api.vehicle.repository;
 
 import io.github.joabsonlg.sigac_api.common.base.BaseRepository;
+import io.github.joabsonlg.sigac_api.vehicle.enumeration.VehicleStatus;
 import io.github.joabsonlg.sigac_api.vehicle.model.Vehicle;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Repository;
@@ -41,7 +42,7 @@ public class VehicleRepository extends BaseRepository<Vehicle, String> {
                         row.get("year", Integer.class),
                         row.get("model", String.class),
                         row.get("brand", String.class),
-                        row.get("status", String.class),
+                        VehicleStatus.valueOf(row.get("status", String.class)),
                         row.get("image_url", String.class)
                 ))
                 .all();
@@ -61,7 +62,7 @@ public class VehicleRepository extends BaseRepository<Vehicle, String> {
                         row.get("year", Integer.class),
                         row.get("model", String.class),
                         row.get("brand", String.class),
-                        row.get("status", String.class),
+                        VehicleStatus.valueOf(row.get("status", String.class)),
                         row.get("image_url", String.class)
                 ))
                 .one();
@@ -85,7 +86,7 @@ public class VehicleRepository extends BaseRepository<Vehicle, String> {
                         row.get("year", Integer.class),
                         row.get("model", String.class),
                         row.get("brand", String.class),
-                        row.get("status", String.class),
+                        VehicleStatus.valueOf(row.get("status", String.class)),
                         row.get("image_url", String.class)
                 ))
                 .all();
@@ -107,7 +108,7 @@ public class VehicleRepository extends BaseRepository<Vehicle, String> {
                 .bind("year", vehicle.year())
                 .bind("model", vehicle.model())
                 .bind("brand", vehicle.brand())
-                .bind("status", vehicle.status())
+                .bind("status", vehicle.status().name())
                 .bind("image_url", vehicle.imageUrl())
                 .then()
                 .thenReturn(vehicle);
@@ -126,7 +127,7 @@ public class VehicleRepository extends BaseRepository<Vehicle, String> {
                 .bind("year", vehicle.year())
                 .bind("model", vehicle.model())
                 .bind("brand", vehicle.brand())
-                .bind("status", vehicle.status())
+                .bind("status", vehicle.status().name())
                 .bind("image_url", vehicle.imageUrl())
                 .then()
                 .thenReturn(vehicle);

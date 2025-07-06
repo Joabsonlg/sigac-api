@@ -1,25 +1,28 @@
 package io.github.joabsonlg.sigac_api.common.model;
 
+import io.github.joabsonlg.sigac_api.maintenance.enumeration.MaintenanceStatus;
+import io.github.joabsonlg.sigac_api.maintenance.enumeration.MaintenanceType;
+
 import java.time.LocalDateTime;
 
 public class Maintenance {
-    private Integer id;
+    private Long id;
     private LocalDateTime scheduledDate;
     private LocalDateTime performedDate;
     private String description;
-    private String type;
-    private String status;
+    private MaintenanceType type;
+    private MaintenanceStatus status;
     private String cost;
-    private Employee employee;
+    private String employeeUserCpf;
     private Vehicle vehicle;
 
     // Getters and setters
 
-    public Integer getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
@@ -47,19 +50,19 @@ public class Maintenance {
         this.description = description;
     }
 
-    public String getType() {
+    public MaintenanceType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(MaintenanceType type) {
         this.type = type;
     }
 
-    public String getStatus() {
+    public MaintenanceStatus  getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(MaintenanceStatus status) {
         this.status = status;
     }
 
@@ -71,12 +74,12 @@ public class Maintenance {
         this.cost = cost;
     }
 
-    public Employee getEmployee() {
-        return employee;
+    public String getEmployeeUserCpf() {
+        return employeeUserCpf;
     }
 
-    public void setEmployee(Employee employee) {
-        this.employee = employee;
+    public void setEmployeeUserCpf(String employeeUserCpf) {
+        this.employeeUserCpf = employeeUserCpf;
     }
 
     public Vehicle getVehicle() {

@@ -1,5 +1,6 @@
 package io.github.joabsonlg.sigac_api.common.model;
 
+import io.github.joabsonlg.sigac_api.vehicle.enumeration.VehicleStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -8,7 +9,7 @@ public class Vehicle {
     private String year;
     private String model;
     private String brand;
-    private String status;
+    private VehicleStatus status;
     private String imageUrl;
 
     public Vehicle(
@@ -16,7 +17,7 @@ public class Vehicle {
             @NotBlank(message = "O ano é obrigatório") @Size(max = 10, message = "O ano deve ter no máximo 10 caracteres") String year,
             @NotBlank(message = "O modelo é obrigatório") @Size(max = 100, message = "O modelo deve ter no máximo 100 caracteres") String model,
             @NotBlank(message = "A marca é obrigatória") @Size(max = 100, message = "A marca deve ter no máximo 100 caracteres") String brand,
-            @NotBlank(message = "O status é obrigatório") @Size(max = 50, message = "O status deve ter no máximo 50 caracteres") String status,
+            @NotBlank(message = "O status é obrigatório") @Size(max = 50, message = "O status deve ter no máximo 50 caracteres") VehicleStatus status,
             @Size(max = 255, message = "A URL da imagem deve ter no máximo 255 caracteres") String imageUrl
     ) {
         this.plate = plate;
@@ -66,11 +67,11 @@ public class Vehicle {
         this.brand = brand;
     }
 
-    public String getStatus() {
+    public VehicleStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(VehicleStatus status) {
         this.status = status;
     }
 

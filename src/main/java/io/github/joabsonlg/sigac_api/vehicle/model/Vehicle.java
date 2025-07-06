@@ -1,5 +1,6 @@
 package io.github.joabsonlg.sigac_api.vehicle.model;
 
+import io.github.joabsonlg.sigac_api.vehicle.enumeration.VehicleStatus;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
@@ -20,7 +21,7 @@ public record Vehicle(
         String brand,
 
         @Column("status")
-        String status,
+        VehicleStatus status,
 
         @Column("image_url")
         String imageUrl
