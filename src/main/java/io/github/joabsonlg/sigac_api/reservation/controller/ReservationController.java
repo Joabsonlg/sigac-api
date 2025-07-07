@@ -20,7 +20,7 @@ import reactor.core.publisher.Mono;
  * Extends BaseController for standardized HTTP responses.
  */
 @RestController
-@RequestMapping("/reservations")
+@RequestMapping("/api/reservations")
 @Tag(name = "Reservation", description = "Operations related to reservation management")
 public class ReservationController extends BaseController<ReservationDTO, Integer> {
     
