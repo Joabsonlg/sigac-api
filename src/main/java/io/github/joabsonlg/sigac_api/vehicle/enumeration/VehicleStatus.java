@@ -18,5 +18,10 @@ public enum VehicleStatus {
     /**
      * O veículo está em manutenção e temporariamente fora de operação.
      */
-    MANUTENCAO
+    MANUTENCAO,
+
+    /**
+     * O veículo está atualmente alugado.
+     */
+    ALUGADO
 }

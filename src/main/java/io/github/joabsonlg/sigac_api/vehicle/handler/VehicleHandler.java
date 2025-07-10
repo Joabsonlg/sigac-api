@@ -4,6 +4,8 @@ import io.github.joabsonlg.sigac_api.common.base.BaseHandler;
 import io.github.joabsonlg.sigac_api.common.exception.ConflictException;
 import io.github.joabsonlg.sigac_api.common.exception.ResourceNotFoundException;
 import io.github.joabsonlg.sigac_api.common.response.PageResponse;
+import io.github.joabsonlg.sigac_api.dailyRate.dto.DailyRateInputDTO;
+import io.github.joabsonlg.sigac_api.dailyRate.handler.DailyRateHandler;
 import io.github.joabsonlg.sigac_api.vehicle.dto.CreateVehicleDTO;
 import io.github.joabsonlg.sigac_api.vehicle.dto.UpdateVehicleDTO;
 import io.github.joabsonlg.sigac_api.vehicle.dto.VehicleDTO;
@@ -14,6 +16,8 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.LocalDateTime;
+
 /**
  * Handler para lógica de negócio relacionada a Veículo.
  * Extende BaseHandler para conversão entre entidade e DTO.
@@ -23,21 +27,27 @@ public class VehicleHandler extends BaseHandler<Vehicle, VehicleDTO, String> {
 
     private final VehicleRepository vehicleRepository;
     private final VehicleValidator vehicleValidator;
+    private final DailyRateHandler dailyRateHandler;
 
-    public VehicleHandler(VehicleRepository vehicleRepository, VehicleValidator vehicleValidator) {
+    public VehicleHandler(VehicleRepository vehicleRepository, VehicleValidator vehicleValidator, DailyRateHandler dailyRateHandler) {
         this.vehicleRepository = vehicleRepository;
         this.vehicleValidator = vehicleValidator;
+        this.dailyRateHandler = dailyRateHandler;
     }
-
     @Override
     protected VehicleDTO toDto(Vehicle entity) {
+        return toDto(entity, null);
+    }
+
+    private VehicleDTO toDto(Vehicle entity, Double amount) {
         return new VehicleDTO(
                 entity.plate(),
                 entity.year(),
                 entity.model(),
                 entity.brand(),
                 entity.status(),
-                entity.imageUrl()
+                entity.imageUrl(),
+                amount
         );
     }
 
@@ -59,7 +69,12 @@ public class VehicleHandler extends BaseHandler<Vehicle, VehicleDTO, String> {
      * @return Flux com DTOs de veículos
      */
     public Flux<VehicleDTO> getAll() {
-        return toDtoFlux(vehicleRepository.findAll());
+        return vehicleRepository.findAll()
+                .flatMap(vehicle ->
+                        dailyRateHandler.getMostRecentByVehiclePlate(vehicle.plate())
+                                .map(dailyRate -> toDto(vehicle, dailyRate.amount()))
+                                .defaultIfEmpty(toDto(vehicle, null))
+                );
     }
 
     /**
@@ -70,10 +85,16 @@ public class VehicleHandler extends BaseHandler<Vehicle, VehicleDTO, String> {
      * @return Mono com resposta paginada
      */
     public Mono<PageResponse<VehicleDTO>> getAllPaginated(int page, int size) {
-        Flux<VehicleDTO> vehicles = toDtoFlux(vehicleRepository.findWithPagination(page, size));
+        Flux<VehicleDTO> vehiclesWithAmount = vehicleRepository.findWithPagination(page, size)
+                .flatMap(vehicle ->
+                        dailyRateHandler.getMostRecentByVehiclePlate(vehicle.plate())
+                                .map(dailyRate -> toDto(vehicle, dailyRate.amount()))
+                                .defaultIfEmpty(toDto(vehicle, null))
+                );
+
         Mono<Long> totalElements = vehicleRepository.countAll();
 
-        return createPageResponse(vehicles, page, size, totalElements);
+        return createPageResponse(vehiclesWithAmount, page, size, totalElements);
     }
 
     /**
@@ -84,8 +105,12 @@ public class VehicleHandler extends BaseHandler<Vehicle, VehicleDTO, String> {
      */
     public Mono<VehicleDTO> getById(String plate) {
         return vehicleRepository.findById(plate)
-                .map(this::toDto)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Veículo", plate)));
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Veículo", plate)))
+                .flatMap(vehicle ->
+                        dailyRateHandler.getMostRecentByVehiclePlate(plate)
+                                .map(dailyRate -> toDto(vehicle, dailyRate.amount()))
+                                .defaultIfEmpty(toDto(vehicle, null))
+                );
     }
 
     /**
@@ -106,7 +131,15 @@ public class VehicleHandler extends BaseHandler<Vehicle, VehicleDTO, String> {
                         createVehicleDTO.imageUrl()
                 )))
                 .flatMap(vehicleRepository::save)
-                .map(this::toDto);
+                .flatMap(savedVehicle -> {
+                    DailyRateInputDTO rateDTO = new DailyRateInputDTO(
+                            createVehicleDTO.dailyRate(),
+                            LocalDateTime.now(),
+                            savedVehicle.plate()
+                    );
+                    return dailyRateHandler.create(rateDTO)
+                            .thenReturn(toDto(savedVehicle));
+                });
     }
 
     /**
@@ -122,18 +155,25 @@ public class VehicleHandler extends BaseHandler<Vehicle, VehicleDTO, String> {
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Veículo", plate)))
                 .flatMap(existing -> {
                     Vehicle updated = new Vehicle(
-                            existing.plate(), // não muda
+                            existing.plate(),
                             dto.year() != null ? dto.year() : existing.year(),
                             dto.model() != null ? dto.model() : existing.model(),
                             dto.brand() != null ? dto.brand() : existing.brand(),
                             dto.status() != null ? dto.status() : existing.status(),
                             dto.imageUrl() != null ? dto.imageUrl() : existing.imageUrl()
                     );
-                    return vehicleRepository.update(updated);
-                })
-                .map(this::toDto);
+                    return vehicleRepository.update(updated)
+                            .flatMap(saved -> {
+                                DailyRateInputDTO rateDTO = new DailyRateInputDTO(
+                                        dto.dailyRate(),
+                                        LocalDateTime.now(),
+                                        plate
+                                );
+                                return dailyRateHandler.create(rateDTO)
+                                        .thenReturn(toDto(saved));
+                            });
+                });
     }
-
 
     /**
      * Exclui um veículo pelo número da placa.

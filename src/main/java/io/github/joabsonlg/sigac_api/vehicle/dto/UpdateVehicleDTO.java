@@ -1,6 +1,8 @@
 package io.github.joabsonlg.sigac_api.vehicle.dto;
 
 import io.github.joabsonlg.sigac_api.vehicle.enumeration.VehicleStatus;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -22,5 +24,10 @@ public record UpdateVehicleDTO(
         VehicleStatus status,
 
         @Size(max = 255, message = "A URL da imagem deve ter no máximo 255 caracteres")
-        String imageUrl
-) {}
+        String imageUrl,
+
+        @NotNull(message = "O valor da diária é obrigatório")
+        @Min(value = 0, message = "O valor deve ser positivo")
+        Double dailyRate
+) {
+}
