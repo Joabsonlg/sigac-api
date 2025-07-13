@@ -31,6 +31,8 @@ public record MaintenanceDTO(
         String cost,
 
         String employeeUserCpf,
-
-        String vehiclePlate
+        String employeeName,
+        String vehiclePlate,
+        String vehicleModel,
+        String vehicleBrand
 ) {}

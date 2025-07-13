@@ -8,6 +8,9 @@ import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Repository for executing manual SQL queries related to Vehicle.
  * Extends BaseRepository for common database operations.
@@ -179,5 +182,25 @@ public class VehicleRepository extends BaseRepository<Vehicle, String> {
             spec = spec.bind("status", status.name());
         }
         return spec.map(row -> row.get(0, Long.class)).first();
+    }
+
+    /**
+     * Counts vehicles by status.
+     *
+     * @return A Flux of Maps, where each Map contains 'status' and 'count'.
+     */
+    public Flux<Map<String, Long>> countVehiclesByStatus() {
+        return databaseClient.sql("""
+            SELECT status, COUNT(*) as count
+            FROM vehicle
+            GROUP BY status
+        """)
+        .map((row, metadata) -> {
+            Map<String, Long> result = new HashMap<>();
+            result.put("status", (long) VehicleStatus.valueOf(row.get("status", String.class)).ordinal());
+            result.put("count", row.get("count", Long.class));
+            return result;
+        })
+        .all();
     }
 }

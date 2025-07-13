@@ -9,15 +9,26 @@ import io.github.joabsonlg.sigac_api.dailyRate.handler.DailyRateHandler;
 import io.github.joabsonlg.sigac_api.vehicle.dto.CreateVehicleDTO;
 import io.github.joabsonlg.sigac_api.vehicle.dto.UpdateVehicleDTO;
 import io.github.joabsonlg.sigac_api.vehicle.dto.VehicleDTO;
+import io.github.joabsonlg.sigac_api.vehicle.dto.VehicleReportDTO;
 import io.github.joabsonlg.sigac_api.vehicle.enumeration.VehicleStatus;
 import io.github.joabsonlg.sigac_api.vehicle.model.Vehicle;
 import io.github.joabsonlg.sigac_api.vehicle.repository.VehicleRepository;
 import io.github.joabsonlg.sigac_api.vehicle.validator.VehicleValidator;
+import io.github.joabsonlg.sigac_api.maintenance.dto.MaintenanceDTO;
+import io.github.joabsonlg.sigac_api.maintenance.enumeration.MaintenanceStatus;
+import io.github.joabsonlg.sigac_api.maintenance.enumeration.MaintenanceType;
+import io.github.joabsonlg.sigac_api.maintenance.dto.MaintenanceDTO;
+import io.github.joabsonlg.sigac_api.maintenance.enumeration.MaintenanceStatus;
+import io.github.joabsonlg.sigac_api.maintenance.enumeration.MaintenanceType;
+import io.github.joabsonlg.sigac_api.maintenance.repository.MaintenanceRepository;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Handler para lógica de negócio relacionada a Veículo.
@@ -29,11 +40,13 @@ public class VehicleHandler extends BaseHandler<Vehicle, VehicleDTO, String> {
     private final VehicleRepository vehicleRepository;
     private final VehicleValidator vehicleValidator;
     private final DailyRateHandler dailyRateHandler;
+    private final MaintenanceRepository maintenanceRepository;
 
-    public VehicleHandler(VehicleRepository vehicleRepository, VehicleValidator vehicleValidator, DailyRateHandler dailyRateHandler) {
+    public VehicleHandler(VehicleRepository vehicleRepository, VehicleValidator vehicleValidator, DailyRateHandler dailyRateHandler, MaintenanceRepository maintenanceRepository) {
         this.vehicleRepository = vehicleRepository;
         this.vehicleValidator = vehicleValidator;
         this.dailyRateHandler = dailyRateHandler;
+        this.maintenanceRepository = maintenanceRepository;
     }
     @Override
     protected VehicleDTO toDto(Vehicle entity) {
@@ -96,6 +109,61 @@ public class VehicleHandler extends BaseHandler<Vehicle, VehicleDTO, String> {
         Mono<Long> totalElements = vehicleRepository.countAll(status);
 
         return createPageResponse(vehiclesWithAmount, page, size, totalElements);
+    }
+
+    /**
+     * Generates a comprehensive report of vehicles.
+     *
+     * @return A Mono containing the VehicleReportDTO.
+     */
+    public Mono<VehicleReportDTO> generateVehicleReport() {
+        Mono<Long> totalVehiclesMono = vehicleRepository.countAll(null);
+        Mono<Long> availableVehiclesMono = vehicleRepository.countAll(VehicleStatus.DISPONIVEL);
+        Mono<Long> inUseVehiclesMono = vehicleRepository.countAll(VehicleStatus.ALUGADO);
+        Mono<Long> inMaintenanceVehiclesMono = vehicleRepository.countAll(VehicleStatus.MANUTENCAO);
+
+        Mono<Map<String, Double>> statusPercentagesMono = vehicleRepository.countVehiclesByStatus()
+                .collectList()
+                .flatMap(counts -> totalVehiclesMono.map(total -> {
+                    Map<String, Double> percentages = new HashMap<>();
+                    for (Map<String, Long> countEntry : counts) {
+                        String statusName = VehicleStatus.values()[countEntry.get("status").intValue()].name();
+                        Double percentage = (total > 0) ? (countEntry.get("count").doubleValue() / total) * 100.0 : 0.0;
+                        percentages.put(statusName, percentage);
+                    }
+                    return percentages;
+                }));
+
+        Mono<List<MaintenanceDTO>> latestMaintenancesMono = maintenanceRepository.findLatestMaintenancesWithDetails(5)
+                .map(this::mapMaintenanceInfoToDto)
+                .collectList();
+
+        return Mono.zip(totalVehiclesMono, availableVehiclesMono, inUseVehiclesMono, inMaintenanceVehiclesMono, statusPercentagesMono, latestMaintenancesMono)
+                .map(tuple -> new VehicleReportDTO(
+                        tuple.getT1(),
+                        tuple.getT2(),
+                        tuple.getT3(),
+                        tuple.getT4(),
+                        tuple.getT5(),
+                        tuple.getT6()
+                ));
+    }
+
+    private MaintenanceDTO mapMaintenanceInfoToDto(Object[] maintenanceInfo) {
+        return new MaintenanceDTO(
+            (Long) maintenanceInfo[0],           // id
+            (LocalDateTime) maintenanceInfo[1],  // scheduledDate
+            (LocalDateTime) maintenanceInfo[2],  // performedDate
+            (String) maintenanceInfo[3],         // description
+            (MaintenanceType) maintenanceInfo[4], // type
+            (MaintenanceStatus) maintenanceInfo[5], // status
+            (String) maintenanceInfo[6],         // cost
+            (String) maintenanceInfo[7],         // employeeUserCpf
+            (String) maintenanceInfo[8],         // employeeName
+            (String) maintenanceInfo[9],         // vehiclePlate
+            (String) maintenanceInfo[10],        // vehicleModel
+            (String) maintenanceInfo[11]         // vehicleBrand
+        );
     }
 
     /**

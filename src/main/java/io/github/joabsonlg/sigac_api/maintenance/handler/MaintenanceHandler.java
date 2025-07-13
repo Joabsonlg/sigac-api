@@ -28,6 +28,10 @@ public class MaintenanceHandler extends BaseHandler<Maintenance, MaintenanceDTO,
 
     @Override
     protected MaintenanceDTO toDto(Maintenance entity) {
+        return toDto(entity, null, null, null);
+    }
+
+    private MaintenanceDTO toDto(Maintenance entity, String employeeName, String vehicleModel, String vehicleBrand) {
         return new MaintenanceDTO(
                 entity.id(),
                 entity.scheduledDate(),
@@ -36,8 +40,11 @@ public class MaintenanceHandler extends BaseHandler<Maintenance, MaintenanceDTO,
                 entity.type(),
                 entity.status(),
                 entity.cost(),
-                entity.employeeUserCpf() != null ? entity.employeeUserCpf() : null,
-                entity.vehiclePlate() != null ? entity.vehiclePlate() : null
+                entity.employeeUserCpf(),
+                employeeName,
+                entity.vehiclePlate(),
+                vehicleModel,
+                vehicleBrand
         );
     }
 
@@ -51,19 +58,20 @@ public class MaintenanceHandler extends BaseHandler<Maintenance, MaintenanceDTO,
                 dto.type(),
                 dto.status(),
                 dto.cost(),
-                null,
-                null
+                dto.employeeUserCpf(),
+                dto.vehiclePlate()
         );
     }
 
     public Flux<MaintenanceDTO> getAll() {
-        return toDtoFlux(maintenanceRepository.findAll());
+        return maintenanceRepository.findAll()
+                .flatMap(maintenance -> Mono.just(toDto(maintenance)));
     }
 
     public Mono<MaintenanceDTO> getById(Long id) {
         return maintenanceRepository.findById(id)
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Manutenção", id)))
-                .map(this::toDto);
+                .flatMap(maintenance -> Mono.just(toDto(maintenance)));
     }
 
     public Mono<MaintenanceDTO> create(CreateMaintenanceDTO dto) {
@@ -76,11 +84,11 @@ public class MaintenanceHandler extends BaseHandler<Maintenance, MaintenanceDTO,
                         dto.type(),
                         MaintenanceStatus.AGENDADA,
                         dto.cost(),
-                        null,
+                        dto.employeeUserCpf(),
                         dto.vehiclePlate()
                 )))
                 .flatMap(maintenanceRepository::save)
-                .map(this::toDto);
+                .flatMap(savedMaintenance -> Mono.just(toDto(savedMaintenance)));
     }
 
     public Mono<MaintenanceDTO> update(Long id, UpdateMaintenanceDTO dto) {
@@ -106,13 +114,13 @@ public class MaintenanceHandler extends BaseHandler<Maintenance, MaintenanceDTO,
                             dto.type() != null ? dto.type() : existing.type(),
                             dto.status() != null ? dto.status() : existing.status(),
                             dto.cost() != null ? dto.cost() : existing.cost(),
-                            existing.employeeUserCpf(),
-                            existing.vehiclePlate()
+                            dto.employeeUserCpf() != null ? dto.employeeUserCpf() : existing.employeeUserCpf(),
+                            dto.vehiclePlate() != null ? dto.vehiclePlate() : existing.vehiclePlate()
                     );
 
                     return maintenanceRepository.update(updated);
                 })
-                .map(this::toDto);
+                .flatMap(updatedMaintenance -> Mono.just(toDto(updatedMaintenance)));
     }
 
     public Mono<Void> delete(Long id) {
@@ -159,7 +167,7 @@ public class MaintenanceHandler extends BaseHandler<Maintenance, MaintenanceDTO,
                     );
                     return maintenanceRepository.update(updated);
                 })
-                .map(this::toDto);
+                .flatMap(updatedMaintenance -> Mono.just(toDto(updatedMaintenance)));
     }
 
 }
