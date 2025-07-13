@@ -7,7 +7,6 @@ import io.github.joabsonlg.sigac_api.reservation.enumeration.ReservationStatus;
 import io.github.joabsonlg.sigac_api.reservation.model.Reservation;
 import io.github.joabsonlg.sigac_api.vehicle.enumeration.VehicleStatus;
 import io.github.joabsonlg.sigac_api.vehicle.model.Vehicle;
-import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
@@ -39,9 +38,9 @@ public class DashboardRepository {
                 .one();
     }
 
-    // --- Contagem reservas ativas ---
-    public Mono<Long> countReservasAtivas() {
-        return databaseClient.sql("SELECT COUNT(*) FROM reservation WHERE status = 'ATIVA'")
+    // --- Contagem total de reservas ---
+    public Mono<Long> countTotalReservas() {
+        return databaseClient.sql("SELECT COUNT(*) FROM reservation")
                 .map(row -> row.get(0, Long.class))
                 .one();
     }
@@ -102,7 +101,7 @@ public class DashboardRepository {
             SELECT id, scheduled_date, performed_date, description, type, status, cost, employee_user_cpf, vehicle_plate
             FROM maintenance
             ORDER BY scheduled_date DESC
-            LIMIT 5
+            LIMIT 3
             """)
                 .map(this::mapRowToMaintenance)
                 .all();

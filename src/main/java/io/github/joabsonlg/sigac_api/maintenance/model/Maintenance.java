@@ -1,5 +1,6 @@
 package io.github.joabsonlg.sigac_api.maintenance.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.github.joabsonlg.sigac_api.maintenance.enumeration.MaintenanceStatus;
 import io.github.joabsonlg.sigac_api.maintenance.enumeration.MaintenanceType;
 import org.springframework.data.annotation.Id;
@@ -15,9 +16,11 @@ public record Maintenance(
         Long id,
 
         @Column("scheduled_date")
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
         LocalDateTime scheduledDate,
 
         @Column("performed_date")
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
         LocalDateTime performedDate,
 
         @Column("description")

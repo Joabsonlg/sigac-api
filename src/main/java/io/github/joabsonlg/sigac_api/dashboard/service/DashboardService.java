@@ -21,7 +21,7 @@ public class DashboardService {
     public Mono<DashboardSummaryDTO> getResumoDashboard() {
         Mono<Long> totalVeiculos = dashboardRepository.countTotalVeiculos();
         Mono<Long> totalClientes = dashboardRepository.countTotalClientes();
-        Mono<Long> reservasAtivas = dashboardRepository.countReservasAtivas();
+        Mono<Long> totalReservas = dashboardRepository.countTotalReservas();
         Mono<List<Reservation>> reservasRecentes = dashboardRepository.findTop5ReservasRecentes().collectList();
         Mono<List<Vehicle>> veiculosRecentes = dashboardRepository.findTop5VeiculosRecentes().collectList();
         Mono<List<Maintenance>> manutencoesRecentes = dashboardRepository.findTop5ManutencoesRecentes().collectList();
@@ -29,7 +29,7 @@ public class DashboardService {
         return Mono.zip(
                 totalVeiculos,
                 totalClientes,
-                reservasAtivas,
+                totalReservas,
                 reservasRecentes,
                 veiculosRecentes,
                 manutencoesRecentes
@@ -37,7 +37,7 @@ public class DashboardService {
             DashboardSummaryDTO dto = new DashboardSummaryDTO();
             dto.setTotalVeiculos(tuple.getT1());
             dto.setTotalClientes(tuple.getT2());
-            dto.setReservasAtivas(tuple.getT3());
+            dto.setTotalReservas(tuple.getT3());
             dto.setReservasRecentes(tuple.getT4());
             dto.setVeiculosRecentes(tuple.getT5());
             dto.setManutencoesRecentes(tuple.getT6());
