@@ -8,6 +8,7 @@ import io.github.joabsonlg.sigac_api.common.response.PageResponse;
 import io.github.joabsonlg.sigac_api.reservation.dto.CreateReservationDTO;
 import io.github.joabsonlg.sigac_api.reservation.dto.ReservationDTO;
 import io.github.joabsonlg.sigac_api.reservation.dto.UpdateReservationDTO;
+import io.github.joabsonlg.sigac_api.reservation.dto.CalculateReservationAmountRequestDTO;
 import io.github.joabsonlg.sigac_api.reservation.enumeration.ReservationStatus;
 import io.github.joabsonlg.sigac_api.reservation.handler.ReservationHandler;
 import io.swagger.v3.oas.annotations.Operation;
@@ -148,8 +149,23 @@ public class ReservationController extends BaseController<ReservationDTO, Intege
     @GetMapping("/status/{status}")
     @Operation(summary = "Get reservations by status", description = "Retrieves all reservations with a specific status")
     public Mono<ResponseEntity<ApiResponse<PageResponse<ReservationDTO>>>> getReservationsByStatus(
-            @Parameter(description = "Reservation status")
+            @Parameter(description = "Reservation status") 
             @PathVariable ReservationStatus status) {
         return okList(reservationHandler.getByStatus(status));
+    }
+
+    /**
+     * Calculates the reservation amount.
+     */
+    @PostMapping("/calculate-amount")
+    @Operation(summary = "Calculate reservation amount", description = "Calculates the total amount for a reservation based on dates, vehicle, and optional promotion code.")
+    public Mono<ResponseEntity<ApiResponse<Double>>> calculateReservationAmount(
+            @RequestBody CalculateReservationAmountRequestDTO requestDTO) {
+        return ok(reservationHandler.calculateReservationAmount(
+            requestDTO.startDate(), 
+            requestDTO.endDate(), 
+            requestDTO.vehiclePlate(), 
+            requestDTO.promotionCode()
+        ));
     }
 }

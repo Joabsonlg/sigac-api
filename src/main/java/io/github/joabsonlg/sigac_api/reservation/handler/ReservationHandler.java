@@ -13,6 +13,8 @@ import io.github.joabsonlg.sigac_api.reservation.repository.ReservationRepositor
 import io.github.joabsonlg.sigac_api.reservation.validator.ReservationValidator;
 import io.github.joabsonlg.sigac_api.vehicle.enumeration.VehicleStatus;
 import io.github.joabsonlg.sigac_api.vehicle.handler.VehicleHandler;
+import io.github.joabsonlg.sigac_api.dailyRate.handler.DailyRateHandler;
+import io.github.joabsonlg.sigac_api.promotion.handler.PromotionHandler;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -29,18 +31,27 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
     private final ReservationRepository reservationRepository;
     private final ReservationValidator reservationValidator;
     private final VehicleHandler vehicleHandler;
+    private final DailyRateHandler dailyRateHandler;
+    private final PromotionHandler promotionHandler;
 
     public ReservationHandler(ReservationRepository reservationRepository, 
                              ReservationValidator reservationValidator, 
-                             VehicleHandler vehicleHandler) {
+                             VehicleHandler vehicleHandler,
+                             DailyRateHandler dailyRateHandler,
+                             PromotionHandler promotionHandler) {
         this.reservationRepository = reservationRepository;
         this.reservationValidator = reservationValidator;
         this.vehicleHandler = vehicleHandler;
+        this.dailyRateHandler = dailyRateHandler;
+        this.promotionHandler = promotionHandler;
     }
 
     @Override
     protected ReservationDTO toDto(Reservation entity) {
-        // This method won't be used directly since we need related entity info
+        return toDto(entity, null, null, null, null, null);
+    }
+
+    private ReservationDTO toDto(Reservation entity, String clientName, String employeeName, String vehicleModel, String vehicleBrand, Double amount) {
         return new ReservationDTO(
             entity.id(),
             entity.startDate(),
@@ -49,13 +60,18 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
             entity.status(),
             entity.promotionCode(),
             entity.clientUserCpf(),
-            null, // clientName - filled by methods that fetch related info
+            clientName,
             entity.employeeUserCpf(),
-            null, // employeeName - filled by methods that fetch related info
+            employeeName,
             entity.vehiclePlate(),
-            null, // vehicleModel - filled by methods that fetch related info
-            null  // vehicleBrand - filled by methods that fetch related info
+            vehicleModel,
+            vehicleBrand,
+            amount
         );
+    }
+
+    private ReservationDTO toDto(Reservation entity, Double amount) {
+        return toDto(entity, null, null, null, null, amount);
     }
 
     @Override
@@ -76,7 +92,7 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
     /**
      * Converts array of reservation info to ReservationDTO
      */
-    private ReservationDTO arrayToReservationDto(Object[] reservationInfo) {
+    private ReservationDTO arrayToReservationDto(Object[] reservationInfo, Double amount) {
         return new ReservationDTO(
             (Integer) reservationInfo[0],           // id
             (LocalDateTime) reservationInfo[1],     // startDate
@@ -90,7 +106,8 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
             (String) reservationInfo[9],            // employeeName
             (String) reservationInfo[10],           // vehiclePlate
             (String) reservationInfo[11],           // vehicleModel
-            (String) reservationInfo[12]            // vehicleBrand
+            (String) reservationInfo[12],           // vehicleBrand
+            amount
         );
     }
 
@@ -99,7 +116,7 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
      */
     public Flux<ReservationDTO> getAll() {
         return reservationRepository.findAllWithDetails()
-                .map(this::arrayToReservationDto);
+                .flatMap(this::mapReservationInfoToDtoWithAmount);
     }
 
     /**
@@ -119,11 +136,40 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
                                                              String query, String cpf) {
         Flux<ReservationDTO> reservations = reservationRepository
             .findAllWithDetailsAndFilters(status, query, cpf, page, size)
-            .map(this::arrayToReservationDto);
+            .flatMap(this::mapReservationInfoToDtoWithAmount);
 
         Mono<Long> totalElements = reservationRepository.countWithFilters(status, query, cpf);
 
         return createPageResponse(reservations, page, size, totalElements);
+    }
+
+    private Mono<ReservationDTO> mapReservationInfoToDtoWithAmount(Object[] reservationInfo) {
+        Integer promotionCode = (Integer) reservationInfo[5];
+        String vehiclePlate = (String) reservationInfo[10];
+        LocalDateTime startDate = (LocalDateTime) reservationInfo[1];
+        LocalDateTime endDate = (LocalDateTime) reservationInfo[2];
+
+        Mono<Double> dailyRateMono = dailyRateHandler.getMostRecentByVehiclePlate(vehiclePlate)
+                .map(dailyRate -> dailyRate.amount())
+                .defaultIfEmpty(0.0);
+
+        Mono<Double> discountMono = Mono.just(0.0);
+        if (promotionCode != null) {
+            discountMono = promotionHandler.getById(promotionCode)
+                    .filter(promo -> promo.isCurrentlyValid())
+                    .map(promo -> promo.discountPercentage() / 100.0)
+                    .defaultIfEmpty(0.0);
+        }
+
+        return Mono.zip(dailyRateMono, discountMono)
+                .map(tuple -> {
+                    Double dailyRate = tuple.getT1();
+                    Double discountPercentage = tuple.getT2();
+                    long hours = java.time.Duration.between(startDate, endDate).toHours();
+                    double calculatedAmount = (dailyRate / 24.0) * hours;
+                    calculatedAmount *= (1.0 - discountPercentage);
+                    return arrayToReservationDto(reservationInfo, calculatedAmount);
+                });
     }
 
     /**
@@ -154,7 +200,10 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
                     );
                 }))
                 .flatMap(reservationRepository::save)
-                .map(this::toDto);
+                .flatMap(savedReservation -> {
+                    return calculateReservationAmount(savedReservation.startDate(), savedReservation.endDate(), savedReservation.vehiclePlate(), savedReservation.promotionCode())
+                            .map(amount -> toDto(savedReservation, amount));
+                });
     }
 
     /**
@@ -195,7 +244,34 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
                             )));
                 })
                 .flatMap(reservationRepository::update)
-                .map(this::toDto);
+                .flatMap(updatedReservation -> {
+                    return calculateReservationAmount(updatedReservation.startDate(), updatedReservation.endDate(), updatedReservation.vehiclePlate(), updatedReservation.promotionCode())
+                            .map(amount -> toDto(updatedReservation, amount));
+                });
+    }
+
+    public Mono<Double> calculateReservationAmount(LocalDateTime startDate, LocalDateTime endDate, String vehiclePlate, Integer promotionCode) {
+        Mono<Double> dailyRateMono = dailyRateHandler.getMostRecentByVehiclePlate(vehiclePlate)
+                .map(dailyRate -> dailyRate.amount())
+                .defaultIfEmpty(0.0);
+
+        Mono<Double> discountMono = Mono.just(0.0);
+        if (promotionCode != null) {
+            discountMono = promotionHandler.getById(promotionCode)
+                    .filter(promo -> promo.isCurrentlyValid())
+                    .map(promo -> promo.discountPercentage() / 100.0)
+                    .defaultIfEmpty(0.0);
+        }
+
+        return Mono.zip(dailyRateMono, discountMono)
+                .map(tuple -> {
+                    Double dailyRate = tuple.getT1();
+                    Double discountPercentage = tuple.getT2();
+                    long hours = java.time.Duration.between(startDate, endDate).toHours();
+                    double calculatedAmount = (dailyRate / 24.0) * hours;
+                    calculatedAmount *= (1.0 - discountPercentage);
+                    return calculatedAmount;
+                });
     }
 
     /**
@@ -264,7 +340,7 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
     public Flux<ReservationDTO> getByClientCpf(String clientCpf) {
         return reservationRepository.findAllWithDetails()
                 .filter(data -> clientCpf.equals(data[6])) // clientUserCpf is at index 6
-                .map(this::arrayToReservationDto);
+                .flatMap(this::mapReservationInfoToDtoWithAmount);
     }
 
     /**
@@ -273,7 +349,7 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
     public Flux<ReservationDTO> getByVehiclePlate(String vehiclePlate) {
         return reservationRepository.findAllWithDetails()
                 .filter(data -> vehiclePlate.equals(data[10])) // vehiclePlate is at index 10
-                .map(this::arrayToReservationDto);
+                .flatMap(this::mapReservationInfoToDtoWithAmount);
     }
 
     /**
@@ -281,6 +357,6 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
      */
     public Flux<ReservationDTO> getByStatus(ReservationStatus status) {
         return reservationRepository.findByStatusWithDetails(status, 0, Integer.MAX_VALUE)
-                .map(this::arrayToReservationDto);
+                .flatMap(this::mapReservationInfoToDtoWithAmount);
     }
 }
