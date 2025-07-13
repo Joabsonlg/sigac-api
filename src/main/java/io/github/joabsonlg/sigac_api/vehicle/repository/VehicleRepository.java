@@ -32,12 +32,18 @@ public class VehicleRepository extends BaseRepository<Vehicle, String> {
     /**
      * Finds all vehicles.
      */
-    public Flux<Vehicle> findAll() {
-        return databaseClient.sql("""
-                SELECT plate, year, model, brand, status, image_url
-                FROM vehicle
-            """)
-                .map((row, metadata) -> new Vehicle(
+    public Flux<Vehicle> findAll(VehicleStatus status) {
+        String sql = "SELECT plate, year, model, brand, status, image_url FROM vehicle";
+        if (status != null) {
+            sql += " WHERE status = :status";
+        }
+        
+        DatabaseClient.GenericExecuteSpec spec = databaseClient.sql(sql);
+        if (status != null) {
+            spec = spec.bind("status", status.name());
+        }
+        
+        return spec.map((row, metadata) -> new Vehicle(
                         row.get("plate", String.class),
                         row.get("year", Integer.class),
                         row.get("model", String.class),
@@ -71,17 +77,21 @@ public class VehicleRepository extends BaseRepository<Vehicle, String> {
     /**
      * Finds vehicles with pagination.
      */
-    public Flux<Vehicle> findWithPagination(int page, int size) {
+    public Flux<Vehicle> findWithPagination(int page, int size, VehicleStatus status) {
         int offset = page * size;
-        return databaseClient.sql("""
-                SELECT plate, year, model, brand, status, image_url
-                FROM vehicle
-                ORDER BY model
-                LIMIT :limit OFFSET :offset
-            """)
-                .bind("limit", size)
-                .bind("offset", offset)
-                .map((row, metadata) -> new Vehicle(
+        String sql = "SELECT plate, year, model, brand, status, image_url FROM vehicle";
+        if (status != null) {
+            sql += " WHERE status = :status";
+        }
+        sql += " ORDER BY model LIMIT :limit OFFSET :offset";
+        
+        DatabaseClient.GenericExecuteSpec spec = databaseClient.sql(sql);
+        spec = spec.bind("limit", size).bind("offset", offset);
+        if (status != null) {
+            spec = spec.bind("status", status.name());
+        }
+
+        return spec.map((row, metadata) -> new Vehicle(
                         row.get("plate", String.class),
                         row.get("year", Integer.class),
                         row.get("model", String.class),
@@ -159,7 +169,15 @@ public class VehicleRepository extends BaseRepository<Vehicle, String> {
     /**
      * Gets total count of vehicles.
      */
-    public Mono<Long> countAll() {
-        return count();
+    public Mono<Long> countAll(VehicleStatus status) {
+        String sql = "SELECT COUNT(*) FROM vehicle";
+        if (status != null) {
+            sql += " WHERE status = :status";
+        }
+        DatabaseClient.GenericExecuteSpec spec = databaseClient.sql(sql);
+        if (status != null) {
+            spec = spec.bind("status", status.name());
+        }
+        return spec.map(row -> row.get(0, Long.class)).first();
     }
 }

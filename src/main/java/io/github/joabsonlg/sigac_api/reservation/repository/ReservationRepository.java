@@ -356,7 +356,7 @@ public class ReservationRepository extends BaseRepository<Reservation, Integer> 
             SELECT COUNT(*)
             FROM reservation
             WHERE vehicle_plate = :vehicle_plate
-              AND status IN ('CONFIRMED', 'IN_PROGRESS')
+              AND status IN ('PENDENTE', 'CONFIRMADA', 'EM_ANDAMENTO')
               AND (
                 (:start_date BETWEEN start_date AND end_date) OR
                 (:end_date BETWEEN start_date AND end_date) OR

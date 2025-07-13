@@ -9,6 +9,7 @@ import io.github.joabsonlg.sigac_api.dailyRate.handler.DailyRateHandler;
 import io.github.joabsonlg.sigac_api.vehicle.dto.CreateVehicleDTO;
 import io.github.joabsonlg.sigac_api.vehicle.dto.UpdateVehicleDTO;
 import io.github.joabsonlg.sigac_api.vehicle.dto.VehicleDTO;
+import io.github.joabsonlg.sigac_api.vehicle.enumeration.VehicleStatus;
 import io.github.joabsonlg.sigac_api.vehicle.model.Vehicle;
 import io.github.joabsonlg.sigac_api.vehicle.repository.VehicleRepository;
 import io.github.joabsonlg.sigac_api.vehicle.validator.VehicleValidator;
@@ -68,8 +69,8 @@ public class VehicleHandler extends BaseHandler<Vehicle, VehicleDTO, String> {
      *
      * @return Flux com DTOs de veículos
      */
-    public Flux<VehicleDTO> getAll() {
-        return vehicleRepository.findAll()
+    public Flux<VehicleDTO> getAll(VehicleStatus status) {
+        return vehicleRepository.findAll(status)
                 .flatMap(vehicle ->
                         dailyRateHandler.getMostRecentByVehiclePlate(vehicle.plate())
                                 .map(dailyRate -> toDto(vehicle, dailyRate.amount()))
@@ -84,15 +85,15 @@ public class VehicleHandler extends BaseHandler<Vehicle, VehicleDTO, String> {
      * @param size tamanho da página
      * @return Mono com resposta paginada
      */
-    public Mono<PageResponse<VehicleDTO>> getAllPaginated(int page, int size) {
-        Flux<VehicleDTO> vehiclesWithAmount = vehicleRepository.findWithPagination(page, size)
+    public Mono<PageResponse<VehicleDTO>> getAllPaginated(int page, int size, VehicleStatus status) {
+        Flux<VehicleDTO> vehiclesWithAmount = vehicleRepository.findWithPagination(page, size, status)
                 .flatMap(vehicle ->
                         dailyRateHandler.getMostRecentByVehiclePlate(vehicle.plate())
                                 .map(dailyRate -> toDto(vehicle, dailyRate.amount()))
                                 .defaultIfEmpty(toDto(vehicle, null))
                 );
 
-        Mono<Long> totalElements = vehicleRepository.countAll();
+        Mono<Long> totalElements = vehicleRepository.countAll(status);
 
         return createPageResponse(vehiclesWithAmount, page, size, totalElements);
     }
@@ -199,6 +200,29 @@ public class VehicleHandler extends BaseHandler<Vehicle, VehicleDTO, String> {
      */
     public Mono<Boolean> existsByPlate(String plate) {
         return vehicleRepository.existsByPlate(plate);
+    }
+
+    /**
+     * Atualiza o status de um veículo.
+     *
+     * @param plate placa do veículo
+     * @param newStatus novo status do veículo
+     * @return Mono vazio ao finalizar
+     */
+    public Mono<Void> updateVehicleStatus(String plate, VehicleStatus newStatus) {
+        return vehicleRepository.findById(plate)
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Veículo", plate)))
+                .flatMap(existingVehicle -> {
+                    Vehicle updatedVehicle = new Vehicle(
+                            existingVehicle.plate(),
+                            existingVehicle.year(),
+                            existingVehicle.model(),
+                            existingVehicle.brand(),
+                            newStatus,
+                            existingVehicle.imageUrl()
+                    );
+                    return vehicleRepository.update(updatedVehicle).then();
+                });
     }
 
     /**
