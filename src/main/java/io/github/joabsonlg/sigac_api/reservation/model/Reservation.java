@@ -1,5 +1,6 @@
 package io.github.joabsonlg.sigac_api.reservation.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.github.joabsonlg.sigac_api.reservation.enumeration.ReservationStatus;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
@@ -18,9 +19,11 @@ public record Reservation(
         Integer id,
 
         @Column("start_date")
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
         LocalDateTime startDate,
 
         @Column("end_date")
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
         LocalDateTime endDate,
 
         @Column("reservation_date")

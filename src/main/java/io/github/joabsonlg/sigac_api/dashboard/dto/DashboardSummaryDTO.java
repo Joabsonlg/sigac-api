@@ -4,6 +4,7 @@ import io.github.joabsonlg.sigac_api.maintenance.model.Maintenance;
 import io.github.joabsonlg.sigac_api.reservation.model.Reservation;
 import io.github.joabsonlg.sigac_api.vehicle.model.Vehicle;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -17,7 +18,7 @@ public class DashboardSummaryDTO {
 
     private long totalVeiculos;
     private long totalClientes;
-    private long reservasAtivas;
+    private long totalReservas;
 
     private List<Reservation> reservasRecentes;
     private List<Vehicle> veiculosRecentes;
@@ -42,12 +43,12 @@ public class DashboardSummaryDTO {
         this.totalClientes = totalClientes;
     }
 
-    public long getReservasAtivas() {
-        return reservasAtivas;
+    public long getTotalReservas() {
+        return totalReservas;
     }
 
-    public void setReservasAtivas(Long reservasAtivas) {
-        this.reservasAtivas = reservasAtivas;
+    public void setTotalReservas(long totalReservas) {
+        this.totalReservas = totalReservas;
     }
 
     public List<Reservation> getReservasRecentes() {
@@ -73,4 +74,5 @@ public class DashboardSummaryDTO {
     public void setManutencoesRecentes(List<Maintenance> manutencoesRecentes) {
         this.manutencoesRecentes = manutencoesRecentes;
     }
+
 }
