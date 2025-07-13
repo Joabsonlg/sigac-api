@@ -23,16 +23,16 @@ import java.time.LocalDateTime;
  */
 @Service
 public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO, Integer> {
-    
+
     private final ReservationRepository reservationRepository;
     private final ReservationValidator reservationValidator;
-    
-    public ReservationHandler(ReservationRepository reservationRepository, 
+
+    public ReservationHandler(ReservationRepository reservationRepository,
                              ReservationValidator reservationValidator) {
         this.reservationRepository = reservationRepository;
         this.reservationValidator = reservationValidator;
     }
-    
+
     @Override
     protected ReservationDTO toDto(Reservation entity) {
         // This method won't be used directly since we need related entity info
@@ -52,7 +52,7 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
             null  // vehicleBrand - filled by methods that fetch related info
         );
     }
-    
+
     @Override
     protected Reservation toEntity(ReservationDTO dto) {
         return new Reservation(
@@ -67,7 +67,7 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
             dto.vehiclePlate()
         );
     }
-    
+
     /**
      * Converts array of reservation info to ReservationDTO
      */
@@ -88,7 +88,7 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
             (String) reservationInfo[12]            // vehicleBrand
         );
     }
-    
+
     /**
      * Gets all reservations with complete information
      */
@@ -96,7 +96,7 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
         return reservationRepository.findAllWithDetails()
                 .map(this::arrayToReservationDto);
     }
-    
+
     /**
      * Gets reservation by ID with complete information
      */
@@ -105,65 +105,53 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Reservation", id)))
                 .map(this::toDto);
     }
-    
+
     /**
      * Gets paginated reservations with filtering
      */
-    public Mono<PageResponse<ReservationDTO>> getAllPaginated(int page, int size, 
-                                                             ReservationStatus status, 
-                                                             String query) {
-        Flux<ReservationDTO> reservations;
-        Mono<Long> totalElements;
-        
-        if (status != null && query != null && !query.trim().isEmpty()) {
-            // Filter by both status and query
-            reservations = reservationRepository.findByStatusAndQueryWithDetails(status, query, page, size)
-                    .map(this::arrayToReservationDto);
-            totalElements = reservationRepository.countByStatusAndQuery(status, query);
-        } else if (status != null) {
-            // Filter by status only
-            reservations = reservationRepository.findByStatusWithDetails(status, page, size)
-                    .map(this::arrayToReservationDto);
-            totalElements = reservationRepository.countByStatus(status);
-        } else if (query != null && !query.trim().isEmpty()) {
-            // Filter by query only
-            reservations = reservationRepository.findByQueryWithDetails(query, page, size)
-                    .map(this::arrayToReservationDto);
-            totalElements = reservationRepository.countByQuery(query);
-        } else {
-            // No filters
-            reservations = reservationRepository.findWithDetailsAndPagination(page, size)
-                    .map(this::arrayToReservationDto);
-            totalElements = reservationRepository.countAll();
-        }
-        
+    public Mono<PageResponse<ReservationDTO>> getAllPaginated(int page, int size,
+                                                             ReservationStatus status,
+                                                             String query, String cpf) {
+        Flux<ReservationDTO> reservations = reservationRepository
+            .findAllWithDetailsAndFilters(status, query, cpf, page, size)
+            .map(this::arrayToReservationDto);
+
+        Mono<Long> totalElements = reservationRepository.countWithFilters(status, query, cpf);
+
         return createPageResponse(reservations, page, size, totalElements);
     }
-    
+
     /**
      * Creates a new reservation
      */
     public Mono<ReservationDTO> create(CreateReservationDTO createDto) {
         return reservationValidator.validateCreateReservation(createDto)
-                .then(checkVehicleAvailability(createDto.vehiclePlate(), 
-                                             createDto.startDate(), 
-                                             createDto.endDate(), 
+                .then(checkVehicleAvailability(createDto.vehiclePlate(),
+                                             createDto.startDate(),
+                                             createDto.endDate(),
                                              null))
-                .then(Mono.fromCallable(() -> new Reservation(
-                    null,
-                    createDto.startDate(),
-                    createDto.endDate(),
-                    LocalDateTime.now(),
-                    ReservationStatus.PENDING,
-                    createDto.promotionCode(),
-                    createDto.clientUserCpf(),
-                    createDto.employeeUserCpf(),
-                    createDto.vehiclePlate()
-                )))
+                .then(Mono.fromCallable(() -> {
+                    String employeeCpf = createDto.employeeUserCpf();
+                    // Se não houver funcionário, deixa nulo
+                    if (employeeCpf == null || employeeCpf.isBlank()) {
+                        employeeCpf = null;
+                    }
+                    return new Reservation(
+                        null,
+                        createDto.startDate(),
+                        createDto.endDate(),
+                        LocalDateTime.now(),
+                        ReservationStatus.PENDING,
+                        createDto.promotionCode(),
+                        createDto.clientUserCpf(),
+                        employeeCpf,
+                        createDto.vehiclePlate()
+                    );
+                }))
                 .flatMap(reservationRepository::save)
                 .map(this::toDto);
     }
-    
+
     /**
      * Updates an existing reservation
      */
@@ -175,19 +163,19 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
                     // Check status transition if status is being updated
                     if (updateDto.status() != null) {
                         reservationValidator.validateStatusTransition(
-                            existingReservation.status(), 
+                            existingReservation.status(),
                             updateDto.status()
                         );
                     }
-                    
+
                     // Check vehicle availability if dates or vehicle are being updated
-                    LocalDateTime newStartDate = updateDto.startDate() != null ? 
+                    LocalDateTime newStartDate = updateDto.startDate() != null ?
                         updateDto.startDate() : existingReservation.startDate();
-                    LocalDateTime newEndDate = updateDto.endDate() != null ? 
+                    LocalDateTime newEndDate = updateDto.endDate() != null ?
                         updateDto.endDate() : existingReservation.endDate();
-                    String newVehiclePlate = updateDto.vehiclePlate() != null ? 
+                    String newVehiclePlate = updateDto.vehiclePlate() != null ?
                         updateDto.vehiclePlate() : existingReservation.vehiclePlate();
-                    
+
                     return checkVehicleAvailability(newVehiclePlate, newStartDate, newEndDate, id)
                             .then(Mono.fromCallable(() -> new Reservation(
                                 existingReservation.id(),
@@ -204,7 +192,7 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
                 .flatMap(reservationRepository::update)
                 .map(this::toDto);
     }
-    
+
     /**
      * Updates reservation status
      */
@@ -217,7 +205,7 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
                 .flatMap(reservationRepository::update)
                 .map(this::toDto);
     }
-    
+
     /**
      * Deletes a reservation (only if status allows)
      */
@@ -234,13 +222,13 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
                 })
                 .then(reservationRepository.deleteReservationById(id));
     }
-    
+
     /**
      * Checks if a vehicle is available for the given date range
      */
-    private Mono<Void> checkVehicleAvailability(String vehiclePlate, 
-                                               LocalDateTime startDate, 
-                                               LocalDateTime endDate, 
+    private Mono<Void> checkVehicleAvailability(String vehiclePlate,
+                                               LocalDateTime startDate,
+                                               LocalDateTime endDate,
                                                Integer excludeReservationId) {
         return reservationRepository.isVehicleAvailable(vehiclePlate, startDate, endDate, excludeReservationId)
                 .flatMap(isAvailable -> {
@@ -251,7 +239,7 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
                     return Mono.empty();
                 });
     }
-    
+
     /**
      * Gets reservations by client CPF
      */
@@ -260,7 +248,7 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
                 .filter(data -> clientCpf.equals(data[6])) // clientUserCpf is at index 6
                 .map(this::arrayToReservationDto);
     }
-    
+
     /**
      * Gets reservations by vehicle plate
      */
@@ -269,7 +257,7 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
                 .filter(data -> vehiclePlate.equals(data[10])) // vehiclePlate is at index 10
                 .map(this::arrayToReservationDto);
     }
-    
+
     /**
      * Gets reservations by status
      */

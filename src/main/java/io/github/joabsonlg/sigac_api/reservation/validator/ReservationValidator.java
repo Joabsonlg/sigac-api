@@ -36,10 +36,6 @@ public class ReservationValidator {
             // Validate CPF format
             commonValidator.validateCpf(dto.clientUserCpf(), "Client CPF");
             
-            if (dto.employeeUserCpf() != null) {
-                commonValidator.validateCpf(dto.employeeUserCpf(), "Employee CPF");
-            }
-            
             // Validate date logic
             validateDateRange(dto.startDate(), dto.endDate());
             

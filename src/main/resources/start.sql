@@ -96,28 +96,28 @@ CREATE TABLE daily_rate
 
 -- Usuários (funcionários e clientes) - Senhas criptografadas com BCrypt
 INSERT INTO users (cpf, email, name, password, address, phone) VALUES
-('36900271014', 'admin@sigac.com', 'João Silva', '$2a$10$kmycAsrWHpn6/dK3gB03Le7.QvmM2FdbkzmOZyn0oD4u3yHZP4PPa', 'Rua das Flores, 123, Centro', '(11) 98765-4321'),
-('23456789012', 'ana.santos@sigac.com', 'Ana Santos', '$2a$10$nvvuC38H8O6VUDl7vWoq6erOLwajM1Pe6fz/N19nmL10E5MH1NKqG', 'Av. Paulista, 1000, Bela Vista', '(11) 87654-3210'),
-('34567890123', 'carlos.oliveira@email.com', 'Carlos Oliveira', '$2a$10$SDydrUszbhuCUWAvDs513eArLbgB.7rtVTHvW2DWhATyA4THqyzj2', 'Rua Augusta, 500, Consolação', '(11) 76543-2109'),
-('45678901234', 'maria.costa@email.com', 'Maria Costa', '$2a$10$dcAIq.j4hGkXnMO.JL0gFu9qrplztlqRszmXDnd5TL3nSHh2Z1TIe', 'Rua Oscar Freire, 200, Jardins', '(11) 65432-1098'),
-('56789012345', 'pedro.almeida@email.com', 'Pedro Almeida', '$2a$10$FKvttLGy6Zd7g/.Y6tx6X.Pde5iH9Oav2k/Fx61D2rl6EXiEkmLWC', 'Av. Rebouças, 300, Pinheiros', '(11) 54321-0987'),
-('67890123456', 'lucia.ferreira@sigac.com', 'Lúcia Ferreira', '$2a$10$O.CEM8q7UKmWbYMRBsh0SeEeXh3mpfjYnMlBaDBcv.Hc/ZfDwvc4C', 'Rua Haddock Lobo, 400, Cerqueira César', '(11) 43210-9876'),
-('78901234567', 'jose.rodrigues@email.com', 'José Rodrigues', '$2a$10$pVMODYtOmeFVGF0/AQc9ie6NjdmBmEvbAVrmnz.LpAPa/2L7wGowq', 'Av. Ibirapuera, 600, Moema', '(11) 32109-8765'),
-('89012345678', 'fernanda.lima@email.com', 'Fernanda Lima', '$2a$10$UnMGetlD0/Ok53zwRCR6jOYhyOv1gLDsf1N0Ts3b49Kvu2nSy8G2W', 'Rua Pamplona, 700, Jardim Paulista', '(11) 21098-7654');
+('26733453029', 'admin@sigac.com', 'João Silva', '$2a$10$kmycAsrWHpn6/dK3gB03Le7.QvmM2FdbkzmOZyn0oD4u3yHZP4PPa', 'Rua das Flores, 123, Centro', '(11) 98765-4321'),
+('06619780016', 'ana.santos@sigac.com', 'Ana Santos', '$2a$10$nvvuC38H8O6VUDl7vWoq6erOLwajM1Pe6fz/N19nmL10E5MH1NKqG', 'Av. Paulista, 1000, Bela Vista', '(11) 87654-3210'),
+('09206821032', 'carlos.oliveira@email.com', 'Carlos Oliveira', '$2a$10$SDydrUszbhuCUWAvDs513eArLbgB.7rtVTHvW2DWhATyA4THqyzj2', 'Rua Augusta, 500, Consolação', '(11) 76543-2109'),
+('96256913086', 'maria.costa@email.com', 'Maria Costa', '$2a$10$dcAIq.j4hGkXnMO.JL0gFu9qrplztlqRszmXDnd5TL3nSHh2Z1TIe', 'Rua Oscar Freire, 200, Jardins', '(11) 65432-1098'),
+('16835741090', 'pedro.almeida@email.com', 'Pedro Almeida', '$2a$10$FKvttLGy6Zd7g/.Y6tx6X.Pde5iH9Oav2k/Fx61D2rl6EXiEkmLWC', 'Av. Rebouças, 300, Pinheiros', '(11) 54321-0987'),
+('56742834005', 'lucia.ferreira@sigac.com', 'Lúcia Ferreira', '$2a$10$O.CEM8q7UKmWbYMRBsh0SeEeXh3mpfjYnMlBaDBcv.Hc/ZfDwvc4C', 'Rua Haddock Lobo, 400, Cerqueira César', '(11) 43210-9876'),
+('43918843050', 'jose.rodrigues@email.com', 'José Rodrigues', '$2a$10$pVMODYtOmeFVGF0/AQc9ie6NjdmBmEvbAVrmnz.LpAPa/2L7wGowq', 'Av. Ibirapuera, 600, Moema', '(11) 32109-8765'),
+('50420937021', 'fernanda.lima@email.com', 'Fernanda Lima', '$2a$10$UnMGetlD0/Ok53zwRCR6jOYhyOv1gLDsf1N0Ts3b49Kvu2nSy8G2W', 'Rua Pamplona, 700, Jardim Paulista', '(11) 21098-7654');
 
 -- Funcionários
 INSERT INTO employee (user_cpf, role) VALUES
-('36900271014', 'ADMIN'),
-('23456789012', 'ATENDENTE'),
-('67890123456', 'GERENTE');
+('26733453029', 'ADMIN'),
+('06619780016', 'ATENDENTE'),
+('56742834005', 'GERENTE');
 
 -- Clientes
 INSERT INTO client (user_cpf) VALUES
-('34567890123'),
-('45678901234'),
-('56789012345'),
-('78901234567'),
-('89012345678');
+('09206821032'),
+('96256913086'),
+('16835741090'),
+('43918843050'),
+('50420937021');
 
 -- Veículos
 INSERT INTO vehicle (plate, year, model, brand, status, image_url) VALUES
@@ -139,11 +139,11 @@ INSERT INTO promotion (discount_percentage, status, start_date, end_date) VALUES
 
 -- Reservas
 INSERT INTO reservation (start_date, end_date, reservation_date, status, promotion_code, client_user_cpf, employee_user_cpf, vehicle_plate) VALUES
-('2025-07-05 09:00:00', '2025-07-10 18:00:00', '2025-07-01 14:30:00', 'CONFIRMADA', 1, '34567890123', '23456789012', 'ABC1234'),
-('2025-07-03 10:00:00', '2025-07-08 17:00:00', '2025-06-30 16:45:00', 'EM_ANDAMENTO', 2, '45678901234', '23456789012', 'GHI9012'),
-('2025-07-08 08:00:00', '2025-07-12 20:00:00', '2025-07-02 11:20:00', 'CONFIRMADA', NULL, '56789012345', '67890123456', 'DEF5678'),
-('2025-07-15 14:00:00', '2025-07-20 12:00:00', '2025-07-02 09:15:00', 'PENDENTE', 1, '78901234567', '23456789012', 'JKL3456'),
-('2025-06-25 07:00:00', '2025-06-30 19:00:00', '2025-06-20 13:40:00', 'FINALIZADA', NULL, '89012345678', '67890123456', 'VWX9012');
+('2025-07-05 09:00:00', '2025-07-10 18:00:00', '2025-07-01 14:30:00', 'CONFIRMADA', 1, '09206821032', '06619780016', 'ABC1234'),
+('2025-07-03 10:00:00', '2025-07-08 17:00:00', '2025-06-30 16:45:00', 'EM_ANDAMENTO', 2, '96256913086', '06619780016', 'GHI9012'),
+('2025-07-08 08:00:00', '2025-07-12 20:00:00', '2025-07-02 11:20:00', 'CONFIRMADA', NULL, '16835741090', '56742834005', 'DEF5678'),
+('2025-07-15 14:00:00', '2025-07-20 12:00:00', '2025-07-02 09:15:00', 'PENDENTE', 1, '43918843050', '06619780016', 'JKL3456'),
+('2025-06-25 07:00:00', '2025-06-30 19:00:00', '2025-06-20 13:40:00', 'FINALIZADA', NULL, '50420937021', '56742834005', 'VWX9012');
 
 -- Pagamentos
 INSERT INTO payment (status, payment_date, payment_method, amount, reservation_id) VALUES
@@ -155,10 +155,10 @@ INSERT INTO payment (status, payment_date, payment_method, amount, reservation_i
 
 -- Manutenções
 INSERT INTO maintenance (scheduled_date, performed_date, description, type, status, cost, employee_user_cpf, vehicle_plate) VALUES
-('2025-07-03 08:00:00', '2025-07-03 10:30:00', 'Troca de óleo e filtros', 'PREVENTIVA', 'CONCLUIDA', '250.00', '67890123456', 'MNO7890'),
-('2025-06-28 14:00:00', '2025-06-28 16:45:00', 'Reparo no freio dianteiro', 'CORRETIVA', 'CONCLUIDA', '480.00', '23456789012', 'STU5678'),
-('2025-07-05 09:00:00', NULL, 'Revisão dos 10.000 km', 'PREVENTIVA', 'AGENDADA', '350.00', '67890123456', 'PQR1234'),
-('2025-07-10 13:00:00', NULL, 'Troca de pneus', 'PREVENTIVA', 'AGENDADA', '800.00', '23456789012', 'ABC1234');
+('2025-07-03 08:00:00', '2025-07-03 10:30:00', 'Troca de óleo e filtros', 'PREVENTIVA', 'CONCLUIDA', '250.00', '56742834005', 'MNO7890'),
+('2025-06-28 14:00:00', '2025-06-28 16:45:00', 'Reparo no freio dianteiro', 'CORRETIVA', 'CONCLUIDA', '480.00', '06619780016', 'STU5678'),
+('2025-07-05 09:00:00', NULL, 'Revisão dos 10.000 km', 'PREVENTIVA', 'AGENDADA', '350.00', '56742834005', 'PQR1234'),
+('2025-07-10 13:00:00', NULL, 'Troca de pneus', 'PREVENTIVA', 'AGENDADA', '800.00', '06619780016', 'ABC1234');
 
 -- Tarifas diárias
 INSERT INTO daily_rate (amount, date_time, vehicle_plate) VALUES
