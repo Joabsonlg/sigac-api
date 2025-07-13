@@ -1,14 +1,18 @@
 package io.github.joabsonlg.sigac_api.vehicle.controller;
 
+import io.github.joabsonlg.sigac_api.auth.handler.AuthHandler;
 import io.github.joabsonlg.sigac_api.common.base.BaseController;
 import io.github.joabsonlg.sigac_api.common.response.ApiResponse;
+import io.github.joabsonlg.sigac_api.common.response.PageResponse;
 import io.github.joabsonlg.sigac_api.vehicle.dto.CreateVehicleDTO;
 import io.github.joabsonlg.sigac_api.vehicle.dto.UpdateVehicleDTO;
 import io.github.joabsonlg.sigac_api.vehicle.dto.VehicleDTO;
+import io.github.joabsonlg.sigac_api.vehicle.enumeration.VehicleStatus;
 import io.github.joabsonlg.sigac_api.vehicle.handler.VehicleHandler;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 
@@ -22,9 +26,11 @@ import reactor.core.publisher.Mono;
 public class VehicleController extends BaseController<VehicleDTO, String> {
 
     private final VehicleHandler vehicleHandler;
+    private final AuthHandler authHandler;
 
-    public VehicleController(VehicleHandler vehicleHandler) {
+    public VehicleController(VehicleHandler vehicleHandler, AuthHandler authHandler) {
         this.vehicleHandler = vehicleHandler;
+        this.authHandler = authHandler;
     }
 
     /**
@@ -33,16 +39,32 @@ public class VehicleController extends BaseController<VehicleDTO, String> {
     @GetMapping
     public Mono<ResponseEntity<ApiResponse<Object>>> getAllVehicles(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            ServerWebExchange exchange) {
 
-        if (page >= 0 && size > 0) {
-            return vehicleHandler.getAllPaginated(page, size)
-                    .map(pageResponse -> ResponseEntity.ok(ApiResponse.success(pageResponse)));
-        } else {
-            return vehicleHandler.getAll()
-                    .collectList()
-                    .map(vehicles -> ResponseEntity.ok(ApiResponse.success(vehicles)));
-        }
+        return authHandler.getUserInfo(exchange)
+                .flatMap(user -> {
+                    boolean isClient = user.role().equals("CLIENT");
+                    VehicleStatus status = isClient ? VehicleStatus.DISPONIVEL : null;
+                    if (page >= 0 && size > 0) {
+                        return vehicleHandler.getAllPaginated(page, size, status)
+                                .map(pageResponse -> ResponseEntity.ok(ApiResponse.success((Object) pageResponse)));
+                    } else {
+                        return vehicleHandler.getAll(status)
+                                .collectList()
+                                .map(vehicles -> ResponseEntity.ok(ApiResponse.success((Object) vehicles)));
+                    }
+                })
+                .switchIfEmpty(Mono.defer(() -> {
+                    if (page >= 0 && size > 0) {
+                        return vehicleHandler.getAllPaginated(page, size, null)
+                                .map(pageResponse -> ResponseEntity.ok(ApiResponse.success((Object) pageResponse)));
+                    } else {
+                        return vehicleHandler.getAll(null)
+                                .collectList()
+                                .map(vehicles -> ResponseEntity.ok(ApiResponse.success((Object) vehicles)));
+                    }
+                }));
     }
 
     /**
