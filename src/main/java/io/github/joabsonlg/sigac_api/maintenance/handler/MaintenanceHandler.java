@@ -4,6 +4,7 @@ import io.github.joabsonlg.sigac_api.common.base.BaseHandler;
 import io.github.joabsonlg.sigac_api.common.exception.ResourceNotFoundException;
 import io.github.joabsonlg.sigac_api.maintenance.dto.CreateMaintenanceDTO;
 import io.github.joabsonlg.sigac_api.maintenance.dto.MaintenanceDTO;
+import io.github.joabsonlg.sigac_api.maintenance.dto.MaintenanceStatusUpdateDTO;
 import io.github.joabsonlg.sigac_api.maintenance.dto.UpdateMaintenanceDTO;
 import io.github.joabsonlg.sigac_api.maintenance.enumeration.MaintenanceStatus;
 import io.github.joabsonlg.sigac_api.maintenance.model.Maintenance;
@@ -139,6 +140,26 @@ public class MaintenanceHandler extends BaseHandler<Maintenance, MaintenanceDTO,
                         return Mono.error(new IllegalStateException("Status da manutenção não permite cancelamento"));
                     }
                 });
+    }
+
+    public Mono<MaintenanceDTO> updateStatus(Long id, MaintenanceStatusUpdateDTO dto) {
+        return maintenanceRepository.findById(id)
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Manutenção", id)))
+                .flatMap(existing -> {
+                    Maintenance updated = new Maintenance(
+                            existing.id(),
+                            existing.scheduledDate(),
+                            existing.performedDate(),
+                            existing.description(),
+                            existing.type(),
+                            dto.status(),
+                            existing.cost(),
+                            existing.employeeUserCpf(),
+                            existing.vehiclePlate()
+                    );
+                    return maintenanceRepository.update(updated);
+                })
+                .map(this::toDto);
     }
 
 }

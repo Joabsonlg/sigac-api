@@ -4,6 +4,7 @@ import io.github.joabsonlg.sigac_api.common.base.BaseController;
 import io.github.joabsonlg.sigac_api.common.response.ApiResponse;
 import io.github.joabsonlg.sigac_api.maintenance.dto.CreateMaintenanceDTO;
 import io.github.joabsonlg.sigac_api.maintenance.dto.MaintenanceDTO;
+import io.github.joabsonlg.sigac_api.maintenance.dto.MaintenanceStatusUpdateDTO;
 import io.github.joabsonlg.sigac_api.maintenance.dto.UpdateMaintenanceDTO;
 import io.github.joabsonlg.sigac_api.maintenance.handler.MaintenanceHandler;
 import jakarta.validation.Valid;
@@ -71,5 +72,12 @@ public class MaintenanceController extends BaseController<MaintenanceDTO, Intege
     public Mono<ResponseEntity<ApiResponse<Void>>> deleteMaintenance(@PathVariable Long id) {
         return maintenanceHandler.delete(id)
                 .then(okMessage("Manutenção excluída com sucesso"));
+    }
+
+    @PatchMapping("/{id}/status")
+    public Mono<ResponseEntity<ApiResponse<MaintenanceDTO>>> updateMaintenanceStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody MaintenanceStatusUpdateDTO dto) {
+        return ok(maintenanceHandler.updateStatus(id, dto));
     }
 }
