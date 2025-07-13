@@ -105,11 +105,11 @@ INSERT INTO users (cpf, email, name, password, address, phone) VALUES
 ('43918843050', 'jose.rodrigues@email.com', 'José Rodrigues', '$2a$10$pVMODYtOmeFVGF0/AQc9ie6NjdmBmEvbAVrmnz.LpAPa/2L7wGowq', 'Av. Ibirapuera, 600, Moema', '(11) 32109-8765'),
 ('50420937021', 'fernanda.lima@email.com', 'Fernanda Lima', '$2a$10$UnMGetlD0/Ok53zwRCR6jOYhyOv1gLDsf1N0Ts3b49Kvu2nSy8G2W', 'Rua Pamplona, 700, Jardim Paulista', '(11) 21098-7654');
 
--- Funcionários
+-- Funcionários, role em ingles
 INSERT INTO employee (user_cpf, role) VALUES
 ('26733453029', 'ADMIN'),
-('06619780016', 'ATENDENTE'),
-('56742834005', 'GERENTE');
+('06619780016', 'ATTENDANT'),
+('56742834005', 'MANAGER');
 
 -- Clientes
 INSERT INTO client (user_cpf) VALUES
