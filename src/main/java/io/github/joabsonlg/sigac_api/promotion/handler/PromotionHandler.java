@@ -40,7 +40,7 @@ public class PromotionHandler extends BaseHandler<Promotion, PromotionDTO, Integ
             entity.status(),
             entity.startDate(),
             entity.endDate(),
-            null, // isCurrentlyValid - calculated when needed
+            entity.isCurrentlyValid(), // Use the boolean method from the entity
             null  // reservationCount - calculated when needed
         );
     }
