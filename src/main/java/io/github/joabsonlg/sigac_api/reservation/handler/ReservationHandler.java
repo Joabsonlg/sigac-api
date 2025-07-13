@@ -152,8 +152,9 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
         String vehiclePlate = (String) reservationInfo[10];
         LocalDateTime startDate = (LocalDateTime) reservationInfo[1];
         LocalDateTime endDate = (LocalDateTime) reservationInfo[2];
+        LocalDateTime reservationDate = (LocalDateTime) reservationInfo[3];
 
-        Mono<Double> dailyRateMono = dailyRateHandler.getMostRecentByVehiclePlate(vehiclePlate)
+        Mono<Double> dailyRateMono = dailyRateHandler.getDailyRateForReservation(vehiclePlate, reservationDate)
                 .map(dailyRate -> dailyRate.amount())
                 .defaultIfEmpty(0.0);
 
@@ -205,7 +206,7 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
                 }))
                 .flatMap(reservationRepository::save)
                 .flatMap(savedReservation -> {
-                    return calculateReservationAmount(savedReservation.startDate(), savedReservation.endDate(), savedReservation.vehiclePlate(), savedReservation.promotionCode())
+                    return calculateReservationAmount(savedReservation.reservationDate(), savedReservation.startDate(), savedReservation.endDate(), savedReservation.vehiclePlate(), savedReservation.promotionCode())
                             .map(amount -> toDto(savedReservation, amount));
                 });
     }
@@ -249,13 +250,13 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
                 })
                 .flatMap(reservationRepository::update)
                 .flatMap(updatedReservation -> {
-                    return calculateReservationAmount(updatedReservation.startDate(), updatedReservation.endDate(), updatedReservation.vehiclePlate(), updatedReservation.promotionCode())
+                    return calculateReservationAmount(updatedReservation.reservationDate(), updatedReservation.startDate(), updatedReservation.endDate(), updatedReservation.vehiclePlate(), updatedReservation.promotionCode())
                             .map(amount -> toDto(updatedReservation, amount));
                 });
     }
 
-    public Mono<Double> calculateReservationAmount(LocalDateTime startDate, LocalDateTime endDate, String vehiclePlate, Integer promotionCode) {
-        Mono<Double> dailyRateMono = dailyRateHandler.getMostRecentByVehiclePlate(vehiclePlate)
+    public Mono<Double> calculateReservationAmount(LocalDateTime reservationDate, LocalDateTime startDate, LocalDateTime endDate, String vehiclePlate, Integer promotionCode) {
+        Mono<Double> dailyRateMono = dailyRateHandler.getDailyRateForReservation(vehiclePlate, reservationDate)
                 .map(dailyRate -> dailyRate.amount())
                 .defaultIfEmpty(0.0);
 

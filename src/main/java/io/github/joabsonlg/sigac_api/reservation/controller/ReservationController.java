@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.time.LocalDateTime;
+
 /**
  * Controller that exposes REST endpoints for Reservation management.
  * Extends BaseController for standardized HTTP responses.
@@ -43,25 +45,25 @@ public class ReservationController extends BaseController<ReservationDTO, Intege
     @GetMapping
     @Operation(summary = "Get all reservations", description = "Retrieves a paginated list of reservations with optional filtering by status or search query")
     public Mono<ResponseEntity<ApiResponse<PageResponse<ReservationDTO>>>> getAllReservations(ServerWebExchange exchange,
-            @Parameter(description = "Page number (0-based)")
-            @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Number of items per page")
-            @RequestParam(defaultValue = "20") int size,
-            @Parameter(description = "Filter by reservation status")
-            @RequestParam(required = false) ReservationStatus status,
-            @Parameter(description = "Search query for client name or vehicle model/brand")
-            @RequestParam(required = false) String query,
-            @Parameter(description = "Filter by client CPF")
-            @RequestParam(required = false) String cpf) {
+                                                                                              @Parameter(description = "Page number (0-based)")
+                                                                                              @RequestParam(defaultValue = "0") int page,
+                                                                                              @Parameter(description = "Number of items per page")
+                                                                                              @RequestParam(defaultValue = "20") int size,
+                                                                                              @Parameter(description = "Filter by reservation status")
+                                                                                              @RequestParam(required = false) ReservationStatus status,
+                                                                                              @Parameter(description = "Search query for client name or vehicle model/brand")
+                                                                                              @RequestParam(required = false) String query,
+                                                                                              @Parameter(description = "Filter by client CPF")
+                                                                                              @RequestParam(required = false) String cpf) {
 
         PaginationParams params = validatePagination(page, size);
 
         return authHandler.getUserInfo(exchange)
-            .flatMap(user -> {
-                String clientCpf = user.role().equals("CLIENT") ? user.cpf() : cpf;
-                return okPage(reservationHandler.getAllPaginated(params.page(), params.size(), status, query, clientCpf));
-            })
-            .switchIfEmpty(okPage(reservationHandler.getAllPaginated(params.page(), params.size(), status, query, cpf)));
+                .flatMap(user -> {
+                    String clientCpf = user.role().equals("CLIENT") ? user.cpf() : cpf;
+                    return okPage(reservationHandler.getAllPaginated(params.page(), params.size(), status, query, clientCpf));
+                })
+                .switchIfEmpty(okPage(reservationHandler.getAllPaginated(params.page(), params.size(), status, query, cpf)));
     }
 
     /**
@@ -150,7 +152,7 @@ public class ReservationController extends BaseController<ReservationDTO, Intege
     @GetMapping("/status/{status}")
     @Operation(summary = "Get reservations by status", description = "Retrieves all reservations with a specific status")
     public Mono<ResponseEntity<ApiResponse<PageResponse<ReservationDTO>>>> getReservationsByStatus(
-            @Parameter(description = "Reservation status") 
+            @Parameter(description = "Reservation status")
             @PathVariable ReservationStatus status) {
         return okList(reservationHandler.getByStatus(status));
     }
@@ -163,10 +165,11 @@ public class ReservationController extends BaseController<ReservationDTO, Intege
     public Mono<ResponseEntity<ApiResponse<Double>>> calculateReservationAmount(
             @RequestBody CalculateReservationAmountRequestDTO requestDTO) {
         return ok(reservationHandler.calculateReservationAmount(
-            requestDTO.startDate(), 
-            requestDTO.endDate(), 
-            requestDTO.vehiclePlate(), 
-            requestDTO.promotionCode()
+                LocalDateTime.now(),
+                requestDTO.startDate(),
+                requestDTO.endDate(),
+                requestDTO.vehiclePlate(),
+                requestDTO.promotionCode()
         ));
     }
 

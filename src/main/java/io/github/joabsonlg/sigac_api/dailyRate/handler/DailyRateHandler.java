@@ -14,6 +14,10 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.LocalDateTime;
+
+import java.time.LocalDateTime;
+
 /**
  * Handler responsável pela lógica de negócio da entidade DailyRate.
  */
@@ -127,6 +131,19 @@ public class DailyRateHandler extends BaseHandler<DailyRate, DailyRateDTO, Integ
     public Mono<DailyRateDTO> getMostRecentByVehiclePlate(String plate) {
         return dailyRateValidator.validatePlate(plate)
                 .flatMap(validPlate -> dailyRateRepository.findMostRecentByVehiclePlate(validPlate)
+                        .map(this::toDto));
+    }
+
+    /**
+     * Busca a diária mais recente de um veículo em ou antes de uma data específica.
+     *
+     * @param plate placa do veículo
+     * @param date data de referência
+     * @return diária mais recente na data
+     */
+    public Mono<DailyRateDTO> getDailyRateForReservation(String plate, LocalDateTime date) {
+        return dailyRateValidator.validatePlate(plate)
+                .flatMap(validPlate -> dailyRateRepository.findDailyRateByVehiclePlateAndDate(validPlate, date)
                         .map(this::toDto));
     }
 

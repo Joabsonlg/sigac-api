@@ -196,4 +196,26 @@ public class DailyRateRepository extends BaseRepository<DailyRate, String> {
                 .one();
     }
 
+    /**
+     * Retorna a diária mais recente de um veículo em ou antes de uma data específica.
+     */
+    public Mono<DailyRate> findDailyRateByVehiclePlateAndDate(String plate, LocalDateTime date) {
+        return databaseClient.sql("""
+            SELECT id, amount, date_time, vehicle_plate
+            FROM daily_rate
+            WHERE vehicle_plate = :plate AND date_time <= :date
+            ORDER BY date_time DESC
+            LIMIT 1
+        """)
+                .bind("plate", plate)
+                .bind("date", date)
+                .map((row, metadata) -> new DailyRate(
+                        row.get("id", Long.class),
+                        row.get("amount", Double.class),
+                        row.get("date_time", LocalDateTime.class),
+                        row.get("vehicle_plate", String.class)
+                ))
+                .one();
+    }
+
 }
