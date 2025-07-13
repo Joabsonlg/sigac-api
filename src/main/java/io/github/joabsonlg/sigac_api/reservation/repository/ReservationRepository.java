@@ -442,4 +442,86 @@ public class ReservationRepository extends BaseRepository<Reservation, Integer> 
     public Mono<Void> deleteReservationById(Integer id) {
         return super.deleteById(id);
     }
+
+    /**
+     * Calculates the total revenue from completed and in-progress reservations.
+     *
+     * @return A Mono containing the total revenue.
+     */
+    public Mono<Double> calculateTotalRevenue() {
+        return databaseClient.sql("""
+            SELECT SUM(dr.amount / 24.0 * EXTRACT(EPOCH FROM (r.end_date - r.start_date)) / 3600.0) AS total_revenue
+                    FROM reservation r
+                    JOIN daily_rate dr ON r.vehicle_plate = dr.vehicle_plate
+                    WHERE r.status IN ('EM_ANDAMENTO', 'FINALIZADA')
+                      AND dr.date_time = (
+                          SELECT MAX(dr2.date_time)
+                          FROM daily_rate dr2
+                          WHERE dr2.vehicle_plate = dr.vehicle_plate AND dr2.date_time <= r.reservation_date
+                      )
+        """)
+        .map(row -> row.get("total_revenue", Double.class))
+        .one()
+        .defaultIfEmpty(0.0D);
+    }
+
+    /**
+     * Counts reservations by status.
+     *
+     * @return A Flux of Maps, where each Map contains 'status' and 'count'.
+     */
+    public Flux<Map<String, Long>> countReservationsByStatus() {
+        return databaseClient.sql("""
+            SELECT status, COUNT(*) as count
+            FROM reservation
+            GROUP BY status
+        """)
+        .map((row, metadata) -> {
+            Map<String, Long> result = new HashMap<>();
+            result.put("status", (long) mapStatusFromString(row.get("status", String.class)).ordinal()); // Using ordinal for simplicity, can map to string if needed
+            result.put("count", row.get("count", Long.class));
+            return result;
+        })
+        .all();
+    }
+
+    /**
+     * Finds the latest N reservations with complete details.
+     *
+     * @param limit The maximum number of reservations to return.
+     * @return A Flux of Object arrays representing the detailed reservations.
+     */
+    public Flux<Object[]> findLatestReservationsWithDetails(int limit) {
+        return databaseClient.sql("""
+            SELECT r.id, r.start_date, r.end_date, r.reservation_date, r.status,
+                   r.promotion_code, r.client_user_cpf, u_client.name as client_name,
+                   r.employee_user_cpf, u_employee.name as employee_name,
+                   r.vehicle_plate, v.model as vehicle_model, v.brand as vehicle_brand
+            FROM reservation r
+            LEFT JOIN client c ON r.client_user_cpf = c.user_cpf
+            LEFT JOIN users u_client ON c.user_cpf = u_client.cpf
+            LEFT JOIN employee e ON r.employee_user_cpf = e.user_cpf
+            LEFT JOIN users u_employee ON e.user_cpf = u_employee.cpf
+            LEFT JOIN vehicle v ON r.vehicle_plate = v.plate
+            ORDER BY r.reservation_date DESC
+            LIMIT :limit
+        """)
+        .bind("limit", limit)
+        .map((row, metadata) -> new Object[]{
+            row.get("id", Integer.class),
+            row.get("start_date", LocalDateTime.class),
+            row.get("end_date", LocalDateTime.class),
+            row.get("reservation_date", LocalDateTime.class),
+            mapStatusFromString(row.get("status", String.class)),
+            row.get("promotion_code", Integer.class),
+            row.get("client_user_cpf", String.class),
+            row.get("client_name", String.class),
+            row.get("employee_user_cpf", String.class),
+            row.get("employee_name", String.class),
+            row.get("vehicle_plate", String.class),
+            row.get("vehicle_model", String.class),
+            row.get("vehicle_brand", String.class)
+        })
+        .all();
+    }
 }

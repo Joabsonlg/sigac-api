@@ -9,6 +9,7 @@ import io.github.joabsonlg.sigac_api.reservation.dto.CreateReservationDTO;
 import io.github.joabsonlg.sigac_api.reservation.dto.ReservationDTO;
 import io.github.joabsonlg.sigac_api.reservation.dto.UpdateReservationDTO;
 import io.github.joabsonlg.sigac_api.reservation.dto.CalculateReservationAmountRequestDTO;
+import io.github.joabsonlg.sigac_api.reservation.dto.ReservationReportDTO;
 import io.github.joabsonlg.sigac_api.reservation.enumeration.ReservationStatus;
 import io.github.joabsonlg.sigac_api.reservation.handler.ReservationHandler;
 import io.swagger.v3.oas.annotations.Operation;
@@ -167,5 +168,14 @@ public class ReservationController extends BaseController<ReservationDTO, Intege
             requestDTO.vehiclePlate(), 
             requestDTO.promotionCode()
         ));
+    }
+
+    /**
+     * Gets reservation report data.
+     */
+    @GetMapping("/report")
+    @Operation(summary = "Get reservation report", description = "Retrieves aggregated data and latest reservations for reporting purposes.")
+    public Mono<ResponseEntity<ApiResponse<ReservationReportDTO>>> getReservationReport() {
+        return ok(reservationHandler.generateReservationReport());
     }
 }

@@ -7,6 +7,7 @@ import io.github.joabsonlg.sigac_api.common.response.PageResponse;
 import io.github.joabsonlg.sigac_api.vehicle.dto.CreateVehicleDTO;
 import io.github.joabsonlg.sigac_api.vehicle.dto.UpdateVehicleDTO;
 import io.github.joabsonlg.sigac_api.vehicle.dto.VehicleDTO;
+import io.github.joabsonlg.sigac_api.vehicle.dto.VehicleReportDTO;
 import io.github.joabsonlg.sigac_api.vehicle.enumeration.VehicleStatus;
 import io.github.joabsonlg.sigac_api.vehicle.handler.VehicleHandler;
 import jakarta.validation.Valid;
@@ -108,5 +109,13 @@ public class VehicleController extends BaseController<VehicleDTO, String> {
     @GetMapping("/{plate}/exists")
     public Mono<ResponseEntity<ApiResponse<Boolean>>> vehicleExists(@PathVariable String plate) {
         return ok(vehicleHandler.existsByPlate(plate));
+    }
+
+    /**
+     * Gets vehicle report data.
+     */
+    @GetMapping("/report")
+    public Mono<ResponseEntity<ApiResponse<VehicleReportDTO>>> getVehicleReport() {
+        return ok(vehicleHandler.generateVehicleReport());
     }
 }

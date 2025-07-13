@@ -20,6 +20,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import io.github.joabsonlg.sigac_api.reservation.dto.ReservationReportDTO;
 
 /**
  * Handler for business logic related to Reservation.
@@ -358,5 +362,45 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
     public Flux<ReservationDTO> getByStatus(ReservationStatus status) {
         return reservationRepository.findByStatusWithDetails(status, 0, Integer.MAX_VALUE)
                 .flatMap(this::mapReservationInfoToDtoWithAmount);
+    }
+
+    /**
+     * Generates a comprehensive report of reservations.
+     *
+     * @return A Mono containing the ReservationReportDTO.
+     */
+    public Mono<ReservationReportDTO> generateReservationReport() {
+        Mono<Long> totalReservationsMono = reservationRepository.countAll();
+        Mono<Long> confirmedReservationsMono = reservationRepository.countByStatus(ReservationStatus.CONFIRMED);
+        Mono<Long> completedReservationsMono = reservationRepository.countByStatus(ReservationStatus.COMPLETED);
+        Mono<Long> cancelledReservationsMono = reservationRepository.countByStatus(ReservationStatus.CANCELLED);
+        Mono<Double> totalRevenueMono = reservationRepository.calculateTotalRevenue();
+
+        Mono<List<ReservationDTO>> latestReservationsMono = reservationRepository.findLatestReservationsWithDetails(5)
+                .flatMap(this::mapReservationInfoToDtoWithAmount)
+                .collectList();
+
+        Mono<Map<String, Double>> statusPercentagesMono = reservationRepository.countReservationsByStatus()
+                .collectList()
+                .flatMap(counts -> totalReservationsMono.map(total -> {
+                    Map<String, Double> percentages = new HashMap<>();
+                    for (Map<String, Long> countEntry : counts) {
+                        String statusName = ReservationStatus.values()[countEntry.get("status").intValue()].name();
+                        Double percentage = (total > 0) ? (countEntry.get("count").doubleValue() / total) * 100.0 : 0.0;
+                        percentages.put(statusName, percentage);
+                    }
+                    return percentages;
+                }));
+
+        return Mono.zip(totalReservationsMono, confirmedReservationsMono, completedReservationsMono, cancelledReservationsMono, totalRevenueMono, latestReservationsMono, statusPercentagesMono)
+                .map(tuple -> new ReservationReportDTO(
+                        tuple.getT1(),
+                        tuple.getT2(),
+                        tuple.getT3(),
+                        tuple.getT4(),
+                        tuple.getT5(),
+                        tuple.getT6(),
+                        tuple.getT7()
+                ));
     }
 }

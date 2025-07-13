@@ -205,4 +205,40 @@ public class MaintenanceRepository extends BaseRepository<Maintenance, Long> {
                 ))
                 .all();
     }
+
+    /**
+     * Finds the latest N maintenances with complete details.
+     *
+     * @param limit The maximum number of maintenances to return.
+     * @return A Flux of Object arrays representing the detailed maintenances.
+     */
+    public Flux<Object[]> findLatestMaintenancesWithDetails(int limit) {
+        return databaseClient.sql("""
+            SELECT m.id, m.scheduled_date, m.performed_date, m.description, m.type, m.status, m.cost,
+                   m.employee_user_cpf, u.name as employee_name,
+                   m.vehicle_plate, v.model as vehicle_model, v.brand as vehicle_brand
+            FROM maintenance m
+            LEFT JOIN employee e ON m.employee_user_cpf = e.user_cpf
+            LEFT JOIN users u ON e.user_cpf = u.cpf
+            LEFT JOIN vehicle v ON m.vehicle_plate = v.plate
+            ORDER BY m.scheduled_date DESC
+            LIMIT :limit
+        """)
+        .bind("limit", limit)
+        .map((row, metadata) -> new Object[]{
+            row.get("id", Long.class),
+            row.get("scheduled_date", LocalDateTime.class),
+            row.get("performed_date", LocalDateTime.class),
+            row.get("description", String.class),
+            MaintenanceType.valueOf(row.get("type", String.class)),
+            MaintenanceStatus.valueOf(row.get("status", String.class)),
+            row.get("cost", String.class),
+            row.get("employee_user_cpf", String.class),
+            row.get("employee_name", String.class),
+            row.get("vehicle_plate", String.class),
+            row.get("vehicle_model", String.class),
+            row.get("vehicle_brand", String.class)
+        })
+        .all();
+    }
 }
