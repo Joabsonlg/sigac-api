@@ -23,5 +23,6 @@ public record ReservationDTO(
         String employeeName,
         String vehiclePlate,
         String vehicleModel,
-        String vehicleBrand
+        String vehicleBrand,
+        Double amount
 ) {}
