@@ -11,6 +11,8 @@ import io.github.joabsonlg.sigac_api.reservation.enumeration.ReservationStatus;
 import io.github.joabsonlg.sigac_api.reservation.model.Reservation;
 import io.github.joabsonlg.sigac_api.reservation.repository.ReservationRepository;
 import io.github.joabsonlg.sigac_api.reservation.validator.ReservationValidator;
+import io.github.joabsonlg.sigac_api.vehicle.enumeration.VehicleStatus;
+import io.github.joabsonlg.sigac_api.vehicle.handler.VehicleHandler;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -26,11 +28,14 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
 
     private final ReservationRepository reservationRepository;
     private final ReservationValidator reservationValidator;
+    private final VehicleHandler vehicleHandler;
 
-    public ReservationHandler(ReservationRepository reservationRepository,
-                             ReservationValidator reservationValidator) {
+    public ReservationHandler(ReservationRepository reservationRepository, 
+                             ReservationValidator reservationValidator, 
+                             VehicleHandler vehicleHandler) {
         this.reservationRepository = reservationRepository;
         this.reservationValidator = reservationValidator;
+        this.vehicleHandler = vehicleHandler;
     }
 
     @Override
@@ -201,9 +206,22 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Reservation", id)))
                 .doOnNext(reservation -> reservationValidator.validateStatusTransition(
                     reservation.status(), newStatus))
-                .map(reservation -> reservation.withStatus(newStatus))
-                .flatMap(reservationRepository::update)
-                .map(this::toDto);
+                .flatMap(reservation -> {
+                    ReservationStatus oldStatus = reservation.status();
+                    Reservation updatedReservation = reservation.withStatus(newStatus);
+                    return reservationRepository.update(updatedReservation)
+                        .flatMap(savedReservation -> {
+                            // Update vehicle status based on reservation status
+                            VehicleStatus newVehicleStatus;
+                            if (newStatus == ReservationStatus.IN_PROGRESS) {
+                                newVehicleStatus = VehicleStatus.INDISPONIVEL;
+                            } else {
+                                newVehicleStatus = VehicleStatus.DISPONIVEL;
+                            }
+                            return vehicleHandler.updateVehicleStatus(savedReservation.vehiclePlate(), newVehicleStatus)
+                                .thenReturn(toDto(savedReservation));
+                        });
+                });
     }
 
     /**

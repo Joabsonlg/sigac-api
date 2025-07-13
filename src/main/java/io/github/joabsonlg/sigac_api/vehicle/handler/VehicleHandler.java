@@ -203,6 +203,29 @@ public class VehicleHandler extends BaseHandler<Vehicle, VehicleDTO, String> {
     }
 
     /**
+     * Atualiza o status de um veículo.
+     *
+     * @param plate placa do veículo
+     * @param newStatus novo status do veículo
+     * @return Mono vazio ao finalizar
+     */
+    public Mono<Void> updateVehicleStatus(String plate, VehicleStatus newStatus) {
+        return vehicleRepository.findById(plate)
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Veículo", plate)))
+                .flatMap(existingVehicle -> {
+                    Vehicle updatedVehicle = new Vehicle(
+                            existingVehicle.plate(),
+                            existingVehicle.year(),
+                            existingVehicle.model(),
+                            existingVehicle.brand(),
+                            newStatus,
+                            existingVehicle.imageUrl()
+                    );
+                    return vehicleRepository.update(updatedVehicle).then();
+                });
+    }
+
+    /**
      * Helper para verificar se a placa já existe antes de criar novo veículo.
      *
      * @param plate placa a verificar
