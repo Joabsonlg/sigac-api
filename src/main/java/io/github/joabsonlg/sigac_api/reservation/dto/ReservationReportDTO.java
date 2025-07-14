@@ -1,6 +1,8 @@
 package io.github.joabsonlg.sigac_api.reservation.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -10,7 +12,7 @@ public record ReservationReportDTO(
     Long confirmedReservations,
     Long completedReservations,
     Long cancelledReservations,
-    Double totalRevenue,
+    BigDecimal totalRevenue,
     List<ReservationDTO> latestReservations,
     Map<String, Double> statusPercentages
 ) {}

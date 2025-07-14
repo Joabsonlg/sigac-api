@@ -4,6 +4,8 @@ import io.github.joabsonlg.sigac_api.common.base.BaseHandler;
 import io.github.joabsonlg.sigac_api.common.exception.ResourceNotFoundException;
 import io.github.joabsonlg.sigac_api.common.exception.ValidationException;
 import io.github.joabsonlg.sigac_api.common.response.PageResponse;
+import io.github.joabsonlg.sigac_api.payment.enumeration.PaymentMethod;
+import io.github.joabsonlg.sigac_api.payment.repository.PaymentRepository;
 import io.github.joabsonlg.sigac_api.reservation.dto.CreateReservationDTO;
 import io.github.joabsonlg.sigac_api.reservation.dto.ReservationDTO;
 import io.github.joabsonlg.sigac_api.reservation.dto.UpdateReservationDTO;
@@ -15,7 +17,11 @@ import io.github.joabsonlg.sigac_api.vehicle.enumeration.VehicleStatus;
 import io.github.joabsonlg.sigac_api.vehicle.handler.VehicleHandler;
 import io.github.joabsonlg.sigac_api.dailyRate.handler.DailyRateHandler;
 import io.github.joabsonlg.sigac_api.promotion.handler.PromotionHandler;
+import io.github.joabsonlg.sigac_api.payment.handler.PaymentHandler;
+import io.github.joabsonlg.sigac_api.payment.dto.CreatePaymentDTO;
+import io.github.joabsonlg.sigac_api.payment.enumeration.PaymentStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -24,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import io.github.joabsonlg.sigac_api.reservation.dto.ReservationReportDTO;
+import java.math.BigDecimal;
 
 /**
  * Handler for business logic related to Reservation.
@@ -37,17 +44,22 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
     private final VehicleHandler vehicleHandler;
     private final DailyRateHandler dailyRateHandler;
     private final PromotionHandler promotionHandler;
+    private final PaymentHandler paymentHandler;
+    private final PaymentRepository paymentRepository;
 
-    public ReservationHandler(ReservationRepository reservationRepository, 
-                             ReservationValidator reservationValidator, 
-                             VehicleHandler vehicleHandler,
-                             DailyRateHandler dailyRateHandler,
-                             PromotionHandler promotionHandler) {
+    public ReservationHandler(ReservationRepository reservationRepository,
+                              ReservationValidator reservationValidator,
+                              VehicleHandler vehicleHandler,
+                              DailyRateHandler dailyRateHandler,
+                              PromotionHandler promotionHandler,
+                              PaymentHandler paymentHandler, PaymentRepository paymentRepository) {
         this.reservationRepository = reservationRepository;
         this.reservationValidator = reservationValidator;
         this.vehicleHandler = vehicleHandler;
         this.dailyRateHandler = dailyRateHandler;
         this.promotionHandler = promotionHandler;
+        this.paymentHandler = paymentHandler;
+        this.paymentRepository = paymentRepository;
     }
 
     @Override
@@ -180,6 +192,7 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
     /**
      * Creates a new reservation
      */
+    @Transactional
     public Mono<ReservationDTO> create(CreateReservationDTO createDto) {
         return reservationValidator.validateCreateReservation(createDto)
                 .then(checkVehicleAvailability(createDto.vehiclePlate(),
@@ -207,13 +220,22 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
                 .flatMap(reservationRepository::save)
                 .flatMap(savedReservation -> {
                     return calculateReservationAmount(savedReservation.reservationDate(), savedReservation.startDate(), savedReservation.endDate(), savedReservation.vehiclePlate(), savedReservation.promotionCode())
-                            .map(amount -> toDto(savedReservation, amount));
+                            .flatMap(amount -> {
+                                CreatePaymentDTO paymentDTO = new CreatePaymentDTO(
+                                    (long) savedReservation.id(),
+                                    PaymentMethod.PIX,
+                                    BigDecimal.valueOf(amount)
+                                );
+                                return paymentHandler.create(paymentDTO)
+                                        .thenReturn(toDto(savedReservation, amount));
+                            });
                 });
     }
 
     /**
      * Updates an existing reservation
      */
+    @Transactional
     public Mono<ReservationDTO> update(Integer id, UpdateReservationDTO updateDto) {
         return reservationValidator.validateUpdateReservation(updateDto)
                 .then(reservationRepository.findById(id))
@@ -282,6 +304,7 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
     /**
      * Updates reservation status
      */
+    @Transactional
     public Mono<ReservationDTO> updateStatus(Integer id, ReservationStatus newStatus) {
         return reservationRepository.findById(id)
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Reservation", id)))
@@ -308,7 +331,14 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
     /**
      * Deletes a reservation (only if status allows)
      */
+    @Transactional
     public Mono<Void> delete(Integer id) {
+        return paymentHandler.deleteByReservationId(id)
+                .then(deleteReservationById(id));
+    }
+
+    @Transactional
+    protected Mono<Void> deleteReservationById(Integer id) {
         return reservationRepository.findById(id)
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Reservation", id)))
                 .doOnNext(reservation -> {
@@ -375,7 +405,7 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
         Mono<Long> confirmedReservationsMono = reservationRepository.countByStatus(ReservationStatus.CONFIRMED);
         Mono<Long> completedReservationsMono = reservationRepository.countByStatus(ReservationStatus.COMPLETED);
         Mono<Long> cancelledReservationsMono = reservationRepository.countByStatus(ReservationStatus.CANCELLED);
-        Mono<Double> totalRevenueMono = reservationRepository.calculateTotalRevenue();
+        Mono<BigDecimal> receitaBruta = paymentRepository.calcularReceitaBruta();
 
         Mono<List<ReservationDTO>> latestReservationsMono = reservationRepository.findLatestReservationsWithDetails(5)
                 .flatMap(this::mapReservationInfoToDtoWithAmount)
@@ -393,7 +423,7 @@ public class ReservationHandler extends BaseHandler<Reservation, ReservationDTO,
                     return percentages;
                 }));
 
-        return Mono.zip(totalReservationsMono, confirmedReservationsMono, completedReservationsMono, cancelledReservationsMono, totalRevenueMono, latestReservationsMono, statusPercentagesMono)
+        return Mono.zip(totalReservationsMono, confirmedReservationsMono, completedReservationsMono, cancelledReservationsMono, receitaBruta, latestReservationsMono, statusPercentagesMono)
                 .map(tuple -> new ReservationReportDTO(
                         tuple.getT1(),
                         tuple.getT2(),

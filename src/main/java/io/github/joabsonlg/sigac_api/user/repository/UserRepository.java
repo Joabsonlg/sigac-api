@@ -105,25 +105,35 @@ public class UserRepository extends BaseRepository<User, String> {
             throw new IllegalArgumentException("CPF é obrigatório para criar um usuário");
         }
         
-        return databaseClient.sql("""
+        DatabaseClient.GenericExecuteSpec executeSpec = databaseClient.sql("""
                 INSERT INTO users (cpf, email, name, password, address, phone) 
                 VALUES (:cpf, :email, :name, :password, :address, :phone)
                 """)
                 .bind("cpf", user.cpf())
                 .bind("email", user.email())
                 .bind("name", user.name())
-                .bind("password", user.password())
-                .bind("address", user.address())
-                .bind("phone", user.phone())
-                .then()
-                .thenReturn(user);
+                .bind("password", user.password());
+
+        if (user.address() != null) {
+            executeSpec = executeSpec.bind("address", user.address());
+        } else {
+            executeSpec = executeSpec.bindNull("address", String.class);
+        }
+
+        if (user.phone() != null) {
+            executeSpec = executeSpec.bind("phone", user.phone());
+        } else {
+            executeSpec = executeSpec.bindNull("phone", String.class);
+        }
+
+        return executeSpec.then().thenReturn(user);
     }
     
     /**
      * Updates an existing user
      */
     public Mono<User> update(User user) {
-        return databaseClient.sql("""
+        DatabaseClient.GenericExecuteSpec executeSpec = databaseClient.sql("""
                 UPDATE users 
                 SET email = :email, name = :name, password = :password, address = :address, phone = :phone
                 WHERE cpf = :cpf
@@ -131,11 +141,21 @@ public class UserRepository extends BaseRepository<User, String> {
                 .bind("cpf", user.cpf())
                 .bind("email", user.email())
                 .bind("name", user.name())
-                .bind("password", user.password())
-                .bind("address", user.address())
-                .bind("phone", user.phone())
-                .then()
-                .thenReturn(user);
+                .bind("password", user.password());
+
+        if (user.address() != null) {
+            executeSpec = executeSpec.bind("address", user.address());
+        } else {
+            executeSpec = executeSpec.bindNull("address", String.class);
+        }
+
+        if (user.phone() != null) {
+            executeSpec = executeSpec.bind("phone", user.phone());
+        } else {
+            executeSpec = executeSpec.bindNull("phone", String.class);
+        }
+
+        return executeSpec.then().thenReturn(user);
     }
     
     /**

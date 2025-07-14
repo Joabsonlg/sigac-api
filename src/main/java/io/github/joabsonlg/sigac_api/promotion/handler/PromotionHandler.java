@@ -12,6 +12,7 @@ import io.github.joabsonlg.sigac_api.promotion.model.Promotion;
 import io.github.joabsonlg.sigac_api.promotion.repository.PromotionRepository;
 import io.github.joabsonlg.sigac_api.promotion.validator.PromotionValidator;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -107,6 +108,7 @@ public class PromotionHandler extends BaseHandler<Promotion, PromotionDTO, Integ
     /**
      * Creates a new promotion
      */
+    @Transactional
     public Mono<PromotionDTO> create(CreatePromotionDTO createPromotionDTO) {
         return promotionValidator.validateCreatePromotion(createPromotionDTO)
                 .then(Mono.fromCallable(() -> {
@@ -124,6 +126,7 @@ public class PromotionHandler extends BaseHandler<Promotion, PromotionDTO, Integ
     /**
      * Updates a promotion
      */
+    @Transactional
     public Mono<PromotionDTO> update(Integer code, UpdatePromotionDTO updatePromotionDTO) {
         return promotionRepository.findById(code)
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Promotion", code.toString())))
@@ -138,6 +141,7 @@ public class PromotionHandler extends BaseHandler<Promotion, PromotionDTO, Integ
     /**
      * Deletes a promotion
      */
+    @Transactional
     public Mono<Void> delete(Integer code) {
         return promotionRepository.findById(code)
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Promotion", code.toString())))
@@ -152,6 +156,7 @@ public class PromotionHandler extends BaseHandler<Promotion, PromotionDTO, Integ
     /**
      * Activates a promotion
      */
+    @Transactional
     public Mono<PromotionDTO> activate(Integer code) {
         return promotionRepository.findById(code)
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Promotion", code.toString())))
@@ -177,6 +182,7 @@ public class PromotionHandler extends BaseHandler<Promotion, PromotionDTO, Integ
     /**
      * Deactivates a promotion
      */
+    @Transactional
     public Mono<PromotionDTO> deactivate(Integer code) {
         return promotionRepository.findById(code)
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Promotion", code.toString())))
@@ -194,6 +200,7 @@ public class PromotionHandler extends BaseHandler<Promotion, PromotionDTO, Integ
     /**
      * Updates a promotion entity with data from UpdatePromotionDTO
      */
+    @Transactional
     private Promotion updateEntity(Promotion promotion, UpdatePromotionDTO dto) {
         return new Promotion(
             promotion.code(),

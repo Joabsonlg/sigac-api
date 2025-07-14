@@ -60,10 +60,10 @@ CREATE TABLE reservation
 CREATE TABLE payment
 (
     id             SERIAL PRIMARY KEY,
-    status         INT,
+    status         VARCHAR(45),
     payment_date   TIMESTAMP,
     payment_method VARCHAR(45),
-    amount         INT,
+    amount         DECIMAL(10,2),
     reservation_id INT,
     FOREIGN KEY (reservation_id) REFERENCES reservation (id)
 );
@@ -76,7 +76,7 @@ CREATE TABLE maintenance
     description       VARCHAR(45),
     type              VARCHAR(45),
     status            VARCHAR(45),
-    cost              VARCHAR(45),
+    cost              DECIMAL(10,2),
     employee_user_cpf VARCHAR(45),
     vehicle_plate     VARCHAR(45),
     FOREIGN KEY (employee_user_cpf) REFERENCES employee (user_cpf),

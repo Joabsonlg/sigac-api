@@ -11,6 +11,7 @@ import io.github.joabsonlg.sigac_api.user.repository.UserRepository;
 import io.github.joabsonlg.sigac_api.user.validator.UserValidator;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -93,6 +94,7 @@ public class UserHandler extends BaseHandler<User, UserDTO, String> {
     /**
      * Creates a new user
      */
+    @Transactional
     public Mono<UserDTO> create(CreateUserDTO createUserDTO) {
         return userValidator.validateCreateUser(createUserDTO)
                 .then(checkIfUserExists(createUserDTO.cpf()))
@@ -115,6 +117,7 @@ public class UserHandler extends BaseHandler<User, UserDTO, String> {
     /**
      * Updates an existing user
      */
+    @Transactional
     public Mono<UserDTO> update(String cpf, UpdateUserDTO updateUserDTO) {
         return userValidator.validateUpdateUser(updateUserDTO)
                 .then(userRepository.findById(cpf))
@@ -159,6 +162,7 @@ public class UserHandler extends BaseHandler<User, UserDTO, String> {
     /**
      * Deletes a user
      */
+    @Transactional
     public Mono<Void> delete(String cpf) {
         return userRepository.existsByCpf(cpf)
                 .flatMap(exists -> {

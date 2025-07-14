@@ -450,10 +450,10 @@ public class ReservationRepository extends BaseRepository<Reservation, Integer> 
      */
     public Mono<Double> calculateTotalRevenue() {
         return databaseClient.sql("""
-            SELECT SUM(dr.amount / 24.0 * EXTRACT(EPOCH FROM (r.end_date - r.start_date)) / 3600.0) AS total_revenue
+            SELECT COALESCE(SUM(dr.amount / 24.0 * EXTRACT(EPOCH FROM (r.end_date - r.start_date)) / 3600.0), 0.0) AS total_revenue
                     FROM reservation r
                     JOIN daily_rate dr ON r.vehicle_plate = dr.vehicle_plate
-                    WHERE r.status IN ('EM_ANDAMENTO', 'FINALIZADA')
+                    WHERE r.status IN ('EM_ANDAMENTO', 'FINALIZADA', 'CONFIRMADA')
                       AND dr.date_time = (
                           SELECT MAX(dr2.date_time)
                           FROM daily_rate dr2

@@ -11,6 +11,7 @@ import io.github.joabsonlg.sigac_api.maintenance.model.Maintenance;
 import io.github.joabsonlg.sigac_api.maintenance.repository.MaintenanceRepository;
 import io.github.joabsonlg.sigac_api.maintenance.validator.MaintenanceValidator;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -74,6 +75,7 @@ public class MaintenanceHandler extends BaseHandler<Maintenance, MaintenanceDTO,
                 .flatMap(maintenance -> Mono.just(toDto(maintenance)));
     }
 
+    @Transactional
     public Mono<MaintenanceDTO> create(CreateMaintenanceDTO dto) {
         return maintenanceValidator.validateCreateMaintenance(dto)
                 .then(Mono.fromCallable(() -> new Maintenance(
@@ -91,6 +93,7 @@ public class MaintenanceHandler extends BaseHandler<Maintenance, MaintenanceDTO,
                 .flatMap(savedMaintenance -> Mono.just(toDto(savedMaintenance)));
     }
 
+    @Transactional
     public Mono<MaintenanceDTO> update(Long id, UpdateMaintenanceDTO dto) {
         return maintenanceValidator.validateUpdateMaintenance(dto)
                 .then(maintenanceRepository.findById(id))
@@ -123,6 +126,7 @@ public class MaintenanceHandler extends BaseHandler<Maintenance, MaintenanceDTO,
                 .flatMap(updatedMaintenance -> Mono.just(toDto(updatedMaintenance)));
     }
 
+    @Transactional
     public Mono<Void> delete(Long id) {
         return maintenanceRepository.findById(id)
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Manutenção", id)))
@@ -150,6 +154,7 @@ public class MaintenanceHandler extends BaseHandler<Maintenance, MaintenanceDTO,
                 });
     }
 
+    @Transactional
     public Mono<MaintenanceDTO> updateStatus(Long id, MaintenanceStatusUpdateDTO dto) {
         return maintenanceRepository.findById(id)
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Manutenção", id)))

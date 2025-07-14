@@ -54,7 +54,7 @@ public class SecurityConfig {
                         .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         
                         // Public endpoints - Authentication
-                        .pathMatchers(HttpMethod.POST, "/auth/login", "/auth/refresh", "/auth/logout").permitAll()
+                        .pathMatchers(HttpMethod.POST, "/auth/login", "/auth/refresh", "/auth/logout", "/api/clients/register").permitAll()
                         .pathMatchers(HttpMethod.GET, "/auth/health").permitAll()
                         
                         // Swagger/OpenAPI endpoints - Public access

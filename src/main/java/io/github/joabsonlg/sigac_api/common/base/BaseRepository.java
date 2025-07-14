@@ -35,7 +35,7 @@ public abstract class BaseRepository<T, ID> {
     /**
      * Executes a count query for the entity table.
      */
-    protected Mono<Long> count() {
+    public Mono<Long> count() {
         return databaseClient
                 .sql("SELECT COUNT(*) FROM " + getTableName())
                 .map(row -> row.get(0, Long.class))
@@ -45,7 +45,7 @@ public abstract class BaseRepository<T, ID> {
     /**
      * Executes a count query with a WHERE clause.
      */
-    protected Mono<Long> countWithCondition(String whereClause, Object... parameters) {
+    public Mono<Long> countWithCondition(String whereClause, Object... parameters) {
         DatabaseClient.GenericExecuteSpec spec = databaseClient
                 .sql("SELECT COUNT(*) FROM " + getTableName() + " WHERE " + whereClause);
 
@@ -59,7 +59,7 @@ public abstract class BaseRepository<T, ID> {
     /**
      * Checks if an entity exists by ID.
      */
-    protected Mono<Boolean> existsById(ID id) {
+    public Mono<Boolean> existsById(ID id) {
         return databaseClient
                 .sql("SELECT 1 FROM " + getTableName() + " WHERE " + getIdColumnName() + " = $1 LIMIT 1")
                 .bind("$1", id)
@@ -71,7 +71,7 @@ public abstract class BaseRepository<T, ID> {
     /**
      * Deletes an entity by ID.
      */
-    protected Mono<Void> deleteById(ID id) {
+    public Mono<Void> deleteById(ID id) {
         return databaseClient
                 .sql("DELETE FROM " + getTableName() + " WHERE " + getIdColumnName() + " = $1")
                 .bind("$1", id)

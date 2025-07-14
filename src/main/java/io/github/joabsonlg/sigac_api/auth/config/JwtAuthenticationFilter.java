@@ -31,6 +31,7 @@ public class JwtAuthenticationFilter implements WebFilter {
             "/auth/refresh",
             "/auth/logout",
             "/auth/health",
+            "/api/clients/register",
             "/swagger-ui",
             "/v3/api-docs",
             "/webjars",

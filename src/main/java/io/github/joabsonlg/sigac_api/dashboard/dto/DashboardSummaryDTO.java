@@ -67,6 +67,15 @@ public class DashboardSummaryDTO {
         this.veiculosRecentes = veiculosRecentes;
     }
 
+    private BigDecimal receitaBruta;
+
+    public BigDecimal getReceitaBruta() {
+        return receitaBruta;
+    }
+
+    public void setReceitaBruta(BigDecimal receitaBruta) {
+        this.receitaBruta = receitaBruta;
+    }
     public List<Maintenance> getManutencoesRecentes() {
         return manutencoesRecentes;
     }

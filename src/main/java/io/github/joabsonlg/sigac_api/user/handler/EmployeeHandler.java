@@ -12,6 +12,7 @@ import io.github.joabsonlg.sigac_api.user.repository.UserRepository;
 import io.github.joabsonlg.sigac_api.user.validator.UserValidator;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -105,6 +106,7 @@ public class EmployeeHandler extends BaseHandler<Employee, EmployeeDTO, String> 
     /**
      * Creates a new employee (creates user first, then employee record)
      */
+    @Transactional
     public Mono<EmployeeDTO> create(CreateEmployeeDTO createEmployeeDTO) {
         return userValidator.validateCreateEmployee(createEmployeeDTO)
                 .then(checkIfUserExists(createEmployeeDTO.cpf()))
@@ -149,6 +151,7 @@ public class EmployeeHandler extends BaseHandler<Employee, EmployeeDTO, String> 
     /**
      * Updates employee role
      */
+    @Transactional
     public Mono<EmployeeDTO> updateRole(String cpf, String newRole) {
         return employeeRepository.findById(cpf)
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Funcionário", cpf)))
@@ -160,6 +163,7 @@ public class EmployeeHandler extends BaseHandler<Employee, EmployeeDTO, String> 
     /**
      * Deletes an employee (removes employee record but keeps user)
      */
+    @Transactional
     public Mono<Void> delete(String cpf) {
         return employeeRepository.existsByCpf(cpf)
                 .flatMap(exists -> {
@@ -173,6 +177,7 @@ public class EmployeeHandler extends BaseHandler<Employee, EmployeeDTO, String> 
     /**
      * Deletes an employee and the associated user
      */
+    @Transactional
     public Mono<Void> deleteWithUser(String cpf) {
         return employeeRepository.existsByCpf(cpf)
                 .flatMap(exists -> {

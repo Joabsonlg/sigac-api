@@ -5,11 +5,13 @@ import io.github.joabsonlg.sigac_api.common.exception.ConflictException;
 import io.github.joabsonlg.sigac_api.common.exception.ResourceNotFoundException;
 import io.github.joabsonlg.sigac_api.common.response.PageResponse;
 import io.github.joabsonlg.sigac_api.user.dto.ClientDTO;
+import io.github.joabsonlg.sigac_api.user.dto.ClientRegistrationDTO;
 import io.github.joabsonlg.sigac_api.user.dto.CreateUserDTO;
 import io.github.joabsonlg.sigac_api.user.model.Client;
 import io.github.joabsonlg.sigac_api.user.repository.ClientRepository;
 import io.github.joabsonlg.sigac_api.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -90,7 +92,29 @@ public class ClientHandler extends BaseHandler<Client, ClientDTO, String> {
     /**
      * Creates a new client (creates user first, then client record)
      */
+    @Transactional
     public Mono<ClientDTO> create(CreateUserDTO createUserDTO) {
+        return userHandler.create(createUserDTO)
+                .flatMap(userDTO -> {
+                    Client client = new Client(userDTO.cpf());
+                    return clientRepository.save(client)
+                            .then(Mono.just(ClientDTO.fromUserDTO(userDTO)));
+                });
+    }
+
+    /**
+     * Registers a new client (creates user first, then client record)
+     */
+    @Transactional
+    public Mono<ClientDTO> registerClient(ClientRegistrationDTO clientRegistrationDTO) {
+        CreateUserDTO createUserDTO = new CreateUserDTO(
+                clientRegistrationDTO.cpf(),
+                clientRegistrationDTO.email(),
+                clientRegistrationDTO.name(),
+                clientRegistrationDTO.password(),
+                clientRegistrationDTO.address(),
+                clientRegistrationDTO.phone()
+        );
         return userHandler.create(createUserDTO)
                 .flatMap(userDTO -> {
                     Client client = new Client(userDTO.cpf());
@@ -121,6 +145,7 @@ public class ClientHandler extends BaseHandler<Client, ClientDTO, String> {
     /**
      * Deletes a client (removes client record but keeps user)
      */
+    @Transactional
     public Mono<Void> delete(String cpf) {
         return clientRepository.existsByCpf(cpf)
                 .flatMap(exists -> {
@@ -134,6 +159,7 @@ public class ClientHandler extends BaseHandler<Client, ClientDTO, String> {
     /**
      * Deletes a client and the associated user
      */
+    @Transactional
     public Mono<Void> deleteWithUser(String cpf) {
         return clientRepository.existsByCpf(cpf)
                 .flatMap(exists -> {

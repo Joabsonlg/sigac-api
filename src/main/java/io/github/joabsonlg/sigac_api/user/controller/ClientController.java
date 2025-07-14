@@ -76,6 +76,14 @@ public class ClientController extends BaseController<ClientDTO, String> {
     public Mono<ResponseEntity<ApiResponse<ClientDTO>>> createClient(@Valid @RequestBody CreateUserDTO createUserDTO) {
         return created(clientHandler.create(createUserDTO));
     }
+
+    /**
+     * Registers a new client.
+     */
+    @PostMapping("/register")
+    public Mono<ResponseEntity<ApiResponse<ClientDTO>>> registerClient(@Valid @RequestBody ClientRegistrationDTO clientRegistrationDTO) {
+        return created(clientHandler.registerClient(clientRegistrationDTO));
+    }
     
     /**
      * Converts an existing user to client

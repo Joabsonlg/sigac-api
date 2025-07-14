@@ -27,6 +27,7 @@ import io.github.joabsonlg.sigac_api.maintenance.repository.MaintenanceRepositor
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -200,6 +201,7 @@ public class VehicleHandler extends BaseHandler<Vehicle, VehicleDTO, String> {
      * @param createVehicleDTO DTO com dados para criação
      * @return Mono com DTO do veículo criado
      */
+    @Transactional
     public Mono<VehicleDTO> create(CreateVehicleDTO createVehicleDTO) {
         return vehicleValidator.validateCreateVehicle(createVehicleDTO)
                 .then(checkIfPlateExists(createVehicleDTO.plate()))
@@ -230,6 +232,7 @@ public class VehicleHandler extends BaseHandler<Vehicle, VehicleDTO, String> {
      * @param dto DTO com dados para atualização
      * @return Mono com DTO do veículo atualizado
      */
+    @Transactional
     public Mono<VehicleDTO> update(String plate, UpdateVehicleDTO dto) {
         return vehicleValidator.validateUpdateVehicle(dto)
                 .then(vehicleRepository.findById(plate))
@@ -262,6 +265,7 @@ public class VehicleHandler extends BaseHandler<Vehicle, VehicleDTO, String> {
      * @param plate placa do veículo
      * @return Mono vazio ao finalizar
      */
+    @Transactional
     public Mono<Void> delete(String plate) {
         return vehicleRepository.existsByPlate(plate)
                 .flatMap(exists -> {
@@ -307,6 +311,7 @@ public class VehicleHandler extends BaseHandler<Vehicle, VehicleDTO, String> {
      * @param newStatus novo status do veículo
      * @return Mono vazio ao finalizar
      */
+    @Transactional
     public Mono<Void> updateVehicleStatus(String plate, VehicleStatus newStatus) {
         return vehicleRepository.findById(plate)
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Veículo", plate)))
