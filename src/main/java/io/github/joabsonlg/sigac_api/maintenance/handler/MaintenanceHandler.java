@@ -161,7 +161,7 @@ public class MaintenanceHandler extends BaseHandler<Maintenance, MaintenanceDTO,
                             existing.description(),
                             existing.type(),
                             dto.status(),
-                            existing.cost(),
+                            dto.cost() != null ? dto.cost() : existing.cost(),
                             existing.employeeUserCpf(),
                             existing.vehiclePlate()
                     );

@@ -142,7 +142,7 @@ public class DashboardRepository {
                 row.get("description", String.class),
                 MaintenanceType.valueOf(row.get("type", String.class)),
                 MaintenanceStatus.valueOf(row.get("status", String.class)),
-                row.get("cost", String.class),
+                row.get("cost", BigDecimal.class),
                 row.get("employee_user_cpf", String.class),
                 row.get("vehicle_plate", String.class)
         );

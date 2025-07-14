@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -31,7 +32,7 @@ public record CreateMaintenanceDTO(
         MaintenanceStatus status,
 
         @Size(max = 45, message = "O custo deve ter no máximo 45 caracteres")
-        String cost,
+        BigDecimal cost,
 
         @NotBlank(message = "O CPF do funcionário é obrigatório")
         @Size(max = 45, message = "O CPF do funcionário deve ter no máximo 45 caracteres")

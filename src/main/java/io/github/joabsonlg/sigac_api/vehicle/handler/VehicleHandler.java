@@ -3,9 +3,12 @@ package io.github.joabsonlg.sigac_api.vehicle.handler;
 import io.github.joabsonlg.sigac_api.common.base.BaseHandler;
 import io.github.joabsonlg.sigac_api.common.exception.ConflictException;
 import io.github.joabsonlg.sigac_api.common.exception.ResourceNotFoundException;
+import io.github.joabsonlg.sigac_api.common.response.ErrorResponse;
 import io.github.joabsonlg.sigac_api.common.response.PageResponse;
 import io.github.joabsonlg.sigac_api.dailyRate.dto.DailyRateInputDTO;
 import io.github.joabsonlg.sigac_api.dailyRate.handler.DailyRateHandler;
+import io.github.joabsonlg.sigac_api.dailyRate.repository.DailyRateRepository;
+import io.github.joabsonlg.sigac_api.reservation.repository.ReservationRepository;
 import io.github.joabsonlg.sigac_api.vehicle.dto.CreateVehicleDTO;
 import io.github.joabsonlg.sigac_api.vehicle.dto.UpdateVehicleDTO;
 import io.github.joabsonlg.sigac_api.vehicle.dto.VehicleDTO;
@@ -21,10 +24,13 @@ import io.github.joabsonlg.sigac_api.maintenance.dto.MaintenanceDTO;
 import io.github.joabsonlg.sigac_api.maintenance.enumeration.MaintenanceStatus;
 import io.github.joabsonlg.sigac_api.maintenance.enumeration.MaintenanceType;
 import io.github.joabsonlg.sigac_api.maintenance.repository.MaintenanceRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -41,12 +47,18 @@ public class VehicleHandler extends BaseHandler<Vehicle, VehicleDTO, String> {
     private final VehicleValidator vehicleValidator;
     private final DailyRateHandler dailyRateHandler;
     private final MaintenanceRepository maintenanceRepository;
+    private final ReservationRepository reservationRepository;
+    private final DailyRateRepository dailyRateRepository;
 
-    public VehicleHandler(VehicleRepository vehicleRepository, VehicleValidator vehicleValidator, DailyRateHandler dailyRateHandler, MaintenanceRepository maintenanceRepository) {
+    public VehicleHandler(VehicleRepository vehicleRepository, VehicleValidator vehicleValidator,
+                          DailyRateHandler dailyRateHandler, MaintenanceRepository maintenanceRepository,
+                          ReservationRepository reservationRepository, DailyRateRepository dailyRateRepository) {
         this.vehicleRepository = vehicleRepository;
         this.vehicleValidator = vehicleValidator;
         this.dailyRateHandler = dailyRateHandler;
         this.maintenanceRepository = maintenanceRepository;
+        this.reservationRepository = reservationRepository;
+        this.dailyRateRepository = dailyRateRepository;
     }
     @Override
     protected VehicleDTO toDto(Vehicle entity) {
@@ -157,7 +169,7 @@ public class VehicleHandler extends BaseHandler<Vehicle, VehicleDTO, String> {
             (String) maintenanceInfo[3],         // description
             (MaintenanceType) maintenanceInfo[4], // type
             (MaintenanceStatus) maintenanceInfo[5], // status
-            (String) maintenanceInfo[6],         // cost
+            (BigDecimal) maintenanceInfo[6],         // cost
             (String) maintenanceInfo[7],         // employeeUserCpf
             (String) maintenanceInfo[8],         // employeeName
             (String) maintenanceInfo[9],         // vehiclePlate
@@ -256,7 +268,25 @@ public class VehicleHandler extends BaseHandler<Vehicle, VehicleDTO, String> {
                     if (!exists) {
                         return Mono.error(new ResourceNotFoundException("Veículo", plate));
                     }
-                    return vehicleRepository.deleteByPlate(plate);
+
+                    // Primeiro: verificar se tem reserva
+                    return reservationRepository.existsByVehiclePlate(plate)
+                            .flatMap(hasReservation -> {
+                                if (hasReservation) {
+                                    return Mono.error(new ConflictException("Veículo com placa " + plate + " está associado a uma reserva"));
+                                }
+
+                                // Segundo: verificar se tem diária
+                                return dailyRateRepository.existsByVehiclePlate(plate)
+                                        .flatMap(hasDailyRate -> {
+                                            if (hasDailyRate) {
+                                                return Mono.error(new ConflictException("Veículo com placa " + plate + " está associado a uma diária"));
+                                            }
+
+                                            // Tudo certo: deletar
+                                            return vehicleRepository.deleteByPlate(plate);
+                                        });
+                            });
                 });
     }
 

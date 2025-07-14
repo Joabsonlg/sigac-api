@@ -45,10 +45,6 @@ public class MaintenanceValidator {
                 throw new ValidationException("Tipo da manutenção é obrigatório");
             }
 
-            if (!isNullOrEmpty(dto.cost()) && dto.cost().length() > 45) {
-                throw new ValidationException("Custo da manutenção deve ter no máximo 45 caracteres");
-            }
-
             if (isNullOrEmpty(dto.employeeUserCpf())) {
                 throw new ValidationException("CPF do funcionário é obrigatório");
             }
@@ -80,9 +76,6 @@ public class MaintenanceValidator {
 
             if (dto.status() != null && !EnumSet.allOf(MaintenanceStatus.class).contains(dto.status())) {
                 throw new ValidationException("Status da manutenção inválido");
-            }
-            if (dto.cost() != null && dto.cost().length() > 45) {
-                throw new ValidationException("Custo da manutenção deve ter no máximo 45 caracteres");
             }
 
             if (dto.employeeUserCpf() != null && dto.employeeUserCpf().isBlank()) {

@@ -3,6 +3,8 @@ package io.github.joabsonlg.sigac_api.maintenance.dto;
 import io.github.joabsonlg.sigac_api.maintenance.enumeration.MaintenanceStatus;
 import io.github.joabsonlg.sigac_api.maintenance.enumeration.MaintenanceType;
 import jakarta.validation.constraints.Size;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -25,7 +27,7 @@ public record UpdateMaintenanceDTO(
         MaintenanceStatus status,
 
         @Size(max = 45, message = "O custo deve ter no máximo 45 caracteres")
-        String cost,
+        BigDecimal cost,
 
         @Size(max = 45, message = "O CPF do funcionário deve ter no máximo 45 caracteres")
         String employeeUserCpf,

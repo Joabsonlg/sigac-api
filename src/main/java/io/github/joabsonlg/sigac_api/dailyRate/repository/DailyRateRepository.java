@@ -218,4 +218,17 @@ public class DailyRateRepository extends BaseRepository<DailyRate, String> {
                 .one();
     }
 
+    public Mono<Boolean> existsByVehiclePlate(String plate) {
+        return databaseClient.sql("""
+            SELECT COUNT(*) FROM daily_rate WHERE vehicle_plate = :plate
+        """)
+                .bind("plate", plate)
+                .map((row, metadata) -> {
+                    Long count = row.get(0, Long.class);
+                    return count != null && count > 0;
+                })
+                .one()
+                .defaultIfEmpty(false);
+    }
+
 }

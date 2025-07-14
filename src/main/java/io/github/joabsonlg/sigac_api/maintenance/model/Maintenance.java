@@ -7,6 +7,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Table("maintenance")
@@ -33,7 +34,7 @@ public record Maintenance(
         MaintenanceStatus status,
 
         @Column("cost")
-        String cost,
+        BigDecimal cost,
 
         @Column("employee_user_cpf")
         String employeeUserCpf,

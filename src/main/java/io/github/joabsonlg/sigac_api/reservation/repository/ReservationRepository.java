@@ -524,4 +524,23 @@ public class ReservationRepository extends BaseRepository<Reservation, Integer> 
         })
         .all();
     }
+
+    /**
+     * Verifica se existe alguma reserva associada à placa do veículo.
+     * @param plate placa do veículo
+     * @return Mono<Boolean> true se existir reserva, false caso contrário
+     */
+    public Mono<Boolean> existsByVehiclePlate(String plate) {
+        return databaseClient.sql("""
+            SELECT COUNT(*) FROM reservation WHERE vehicle_plate = :plate
+        """)
+                .bind("plate", plate)
+                .map((row, metadata) -> {
+                    Long count = row.get(0, Long.class);
+                    return count != null && count > 0;
+                })
+                .one()
+                .defaultIfEmpty(false);
+    }
+
 }

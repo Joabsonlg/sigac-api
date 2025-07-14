@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import io.github.joabsonlg.sigac_api.maintenance.enumeration.MaintenanceStatus;
 import io.github.joabsonlg.sigac_api.maintenance.enumeration.MaintenanceType;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -28,7 +29,7 @@ public record MaintenanceDTO(
 
         MaintenanceStatus status,
 
-        String cost,
+        BigDecimal cost,
 
         String employeeUserCpf,
         String employeeName,
